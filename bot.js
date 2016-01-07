@@ -1,16 +1,21 @@
 /*Variable area*/
+var auth = require('./auth.json');
 var Discordbot = require('discord.io');
 var bot = new Discordbot({
-  email: "vinylpone@gmail.com",
-  password: "INSERT PASSWORD HERE",
+  email: auth.email,
+  password: auth.password,
   autorun: true
 });
 
-var personalRoom = 133337987520921600;
-var fs = require('fs');
-var kemo = require('./reddit');
-var http = require('https');
 
+var fs = require('fs');
+var http = require('http');
+
+var personalRoom = 133337987520921600;
+var reddit = require('./reddit');
+var config = require('./config.json');
+config.deletereddit = config.deletereddit || false;
+/*----------------------------------------------*/
 /*Event area*/
 bot.on("err", function(error) {
   console.log(error)
@@ -25,27 +30,24 @@ bot.on("ready", function(rawEvent) {
     game: "Doing fishy stuffs :D"
   });
   bot.editUserInfo({
-    password: 'INSERT PASSWORD HERE', //Required
+    password: auth.email, //Required
     username: 'Eribot' //Optional
   })
   console.log("Set status!");
-
 });
 
 bot.on("message", function(user, userID, channelID, message, rawEvent) {
-  console.log(user + " - " + userID);
-  console.log("in " + channelID);
-  console.log(message);
+  console.log(user + " - " + userID + "in " + channelID + ": " + message);
   console.log("----------");
 
   //todo add !shush on {I won't say a thing in this chat again!}
-  if ( /*channelID == personalRoom && */ userID != bot.id)
+  if (userID != bot.id)
     if (message[0] === '~') {
       var argumentStart = message.indexOf(' ');
       var arguments = null;
       var commandReceived = message;
       if (argumentStart > 0) {
-        arguments = message.substr(argumentStart + 1, message.length);
+        arguments = message.substr(argumentStart + 1);
         commandReceived = message.substr(0, argumentStart);
       }
       switch (commandReceived) {
@@ -54,22 +56,63 @@ bot.on("message", function(user, userID, channelID, message, rawEvent) {
           console.log("Ponged <@" + userID + ">");
           break;
 
-        case '~r':
-          kemo.getKemo(function(response) {
+        case '~subreddit':
+        case '~reddit':
+          if (arguments != null) {
+            var args = arguments;
+            redditdiscord.getSubreddit(arguments, function(response) {
+              bot.deleteMessage({
+                channel: channelID,
+                messageID: rawEvent.d.id
+              });
+              console.log(response);
+              if (response != undefined) {
+                sendMessages(channelID, ["<@" + userID + ">: **Random image from /r/" + args + " coming in comrade!**"]);
+                response = response.replace(/^https:\/\//i, 'http://');
+                var filename = "temp\\" + response.split("/").pop();
+                var file = fs.createWriteStream(filename);
+                var request = http.get(response, function(response) {
+                  response.pipe(file);
+                });
+                request.on('close', function() {
+                  fs.exists(filename, function(exists) {
+                    if (exists) {
+                      bot.uploadFile({
+                        channel: channelID,
+                        file: fs.createReadStream(filename)
+                      }, function(response) { //CB Optional
+                        if (config.deletereddit) fs.unlink(filename);
+                      });
+                    }
+                  });
+                });
+              } else sendMessages(channelID, ["<@" + userID + ">: **The subreddit /r/" + args + " has no images or it's invalid!**"]);
+            });
+          }
+          break;
+
+        case '~kemo':
+          reddit.getKemo(function(response) {
+            sendMessages(channelID, ["<@" + userID + ">: **Random image from /r/kemonomimi coming in comrade!**"]);
+            bot.deleteMessage({
+              channel: channelID,
+              messageID: rawEvent.d.id
+            });
+            console.log(response);
+            response = response.replace(/^https:\/\//i, 'http://');
             var filename = "temp\\" + response.split("/").pop();
             var file = fs.createWriteStream(filename);
-            console.log(response);
             var request = http.get(response, function(response) {
               response.pipe(file);
             });
-						request.on('close', function(){
-							bot.uploadFile({
-								channel: channelID,
-								file: fs.createReadStream(filename)
-							}, function(response) { //CB Optional
-									fs.unlink(filename);
-							});
-						});
+            request.on('close', function() {
+              bot.uploadFile({
+                channel: channelID,
+                file: fs.createReadStream(filename)
+              }, function(response) { //CB Optional
+                if (config.deletereddit) fs.unlink(filename);
+              });
+            });
           });
           break;
 
@@ -160,24 +203,22 @@ bot.on("message", function(user, userID, channelID, message, rawEvent) {
           break;
 
         case '~list':
-          sendMessages(channelID, ["```4Head ANELE ArsonNoSexy AsianGlow AtGL AthenaPMS AtIvy AtWW azaConrad azaDRAIN azaERASED azaFox azaHAPPY azaHHH azaMAD azaRAT BabyRage BatChest BCWarrior BibleThump BigBrother BionicBunion BlargNaut BloodTrail boomerBoomerMosta boomerBoomerStapler boomerDrink boomerGlantz boomerInc boomerKappe boomerKrone boomerMinus boomerPizza boomerSabotage BORT BrainSlug BrokeBack BuddhaBar chingAus chingBday chingBig chingBinbash chingBomb chingEdge chingFace chingHype chingJail chingMaiku chingMod chingMoney chingPanda chingPotato chingS chingSense chingSub chingTgi chingTroll chingW CougarHunt DAESuppydan10 dan7 danBad danCreep danCringe danCry danCute danDead danDerp danDuck danGasm danGasp danGrump danHype danLewd danLol danLove danNo danPalm danPoop danRage danRekt danScare danSexy DansGame danThinkdanTrain danWave danWTF danYay danYes DatSheffy DBstyle DendiFace dewD dewDel dewDitch dewDoge dewDown dewDream dewGloves dewHex dewHS dewJones dewKass dewMad dewSwag dewTowel dewTrain dewUp dewW dewWhipdiablousKappa DogFace duckArthas duckBA duckBarrel duckBedHead duckBoop duckCoffee duckDerp duckDuckFlex duckGA duckMama duckParty duckPist duckQuappa duckSad duckSkadoosh duckSpread duckTenTen duckTrainduckZIN EagleEye EleGiggle emoEz emoGlock emoLoser emoRekt emoRufusZ emoSwag emoVorteX emoWoo EvilFetus FailFish FPSMarksman FrankerZ FreakinStinkin FUNgineer FunRun FuzzyOtterOO GasJoker GingerPower```"]);
-          setTimeout(function() {
-            console.log('sleeping thread');
-          }, 500);
-          sendMessages(channelID, ["```GrammarKing HassaanChop HassanChop heroDEEP heroDITCH heroFACEPALM heroNEXT heroSMILE heroWAFFLE HeyGuys HotPokket HumbleLife hydraGREEN hydraHEIL hydraLUNA hydraMURAT hydraPURPLE hydraRUSSIA hydraSquarehydraXMAS ItsBoshyTime jaxer123 jaxer4Sheffy jaxerFuzz jaxerGasm jaxerGive jaxerPicnic jaxerPotato Jebaited JKanStyle JonCarnage KAPOW Kappa Keepo KevinTurtle Kippa Kreygasm krippBird krippCat krippChampkrippDoge krippDonger krippDonger2 krippEye krippFist krippGive krippLucky krippOJ krippRage krippRiot krippSheffy krippSleeper krippSuccy krippThump krippToon krippW krippWall krippWTF KZassault KZcoverKZguerilla KZhelghast KZowl KZskull leaD leaDinodoge leaDS leaG leaH leaHS leaHug leaK leaKing leaKobe leaL leaLethal leaPedo leaRage leaRIP leaSkal leaSubHorn leaTbirds leaThump lirikAppa lirikB lirikClirikCLENCH lirikCRASH lirikCRY lirikD lirikDEAD lirikF lirikFAT lirikGasm lirikGOTY lirikH lirikHug lirikHYPE lirikL lirikM lirikMLG lirikNICE lirikO lirikPOOP lirikPVP lirikRage lirikREKT lirikRIPlirikTEN lirikThump lirikTRASH lirikW lirikWc Mau5 mcaT MechaSupes mitch1 mitchAbort mitchCall mitchDewkappa mitchDood mitchDream mitchHi-Yah mitchKamehameha mitchLipstick mitchMitchEw mitchQuest```"]);
-          setTimeout(function() {
-            console.log('sleeping thread');
-          }, 500);
-          sendMessages(channelID, ["```mitchTheLaw mitchTyrone mitchW mitchWW mitchYoloBlock MrDestructoid MVGame NightBat NinjaTroll nmpKerpa nmpNMPbomb nmpSAD nmpSweg nmpTHELORD nmpThump nmpTUDI nmpW NoNoSpot noScope NotAtk OMGScoots OneHandOpieOP OptimizePrime panicBasket PanicVis PazPazowitz PeoplesChamp PermaSmug PicoMause pingApproves pingCoon pingKappa pingNana pingOh pingShiny pingStar pingW PipeHype PJHarley PJSalt PMSTwin PogChampPoooound PraiseIt PRChase primeBeard primeCoin primeFeel primeKappa primeLaugh primeLoot primeScum primeSquid PunchTrees PuppeyFace RaccAttack RalpherZ reckCry reckD reckDDOS reckDealer reckFarmerreckHello reckJenna reckJew reckRiot reckS reckSleeper reckSND reckT reckTime reckW RedCoat ResidentSleeper RitzMitz rukiAdult rukiAmigo rukiBuddy rukiCanadaEh rukiCreep rukiCry rukiDerp rukiDownGoesrukiDoYou rukiGasm rukiHarryKappa rukiPunch rukiSmug rukiTea rukiWizRuki rukiWot RuleFive sdzParty sdzThirsty sdzTmnt sdzTreebeard Shazam shazamicon ShazBotstix ShibeZ SMOrc SMSkull snutzAmigo snutzBearsnutzChika snutzFDB snutzGasm snutzHorse snutzHype snutzLove snutzMoney snutzPaladin snutzRamen snutzTrain snutzTurtle snutzWub SoBayed sodaAwkward sodaB sodaBAM sodaBD sodaBibleThump sodaBJP sodaBT sodaC```"]);
-          setTimeout(function() {
-            console.log('sleeping thread');
-          }, 500);
-          sendMessages(channelID, ["```sodaCRINGE sodaDEAL sodaDI sodaDOGE sodaDS sodaDU sodaFP sodaG sodaGASM sodaGG sodaGive sodaGS sodaHeyGuys sodaHYPE sodaIMAPELICAN sodaKappa sodaKYLE sodaMicMuted sodaMLG sodaNOPE sodaPETA sodaPYAH sodaRBsodaREKT sodaRIOT sodaRIP sodaROGER sodaSENPAI sodaTD sodaUpist sodaW sodaWELCOME sodaWH SoonerLater SriHead SSSsss StoneLightning StrawBeary SuperVinlin SwiftRage talbFace talbHappy talbLewd talbSadtalbSloth talbTroll talbWheresbyron taureHartz taureKommerz taureMic taureSchimmel taureSnipe taureUSB TF2John thatBob thatDemMelons thatKawaii thatLOL thatScumbag thatSwine thatThirstthatWhiteKnight TheRinger TheTarFu TheThing ThunBeast TinyFace TooSpicy towAim towBANNED towBeer towBolvar towByah towDerp towHAMUP towJesus towJoe towKappa towOface towPalm towPoop towRage towRekt towRiptowShappens towShots towSkinTowel towThump towTrain towVACBOSS towW towWtf TriHard TTours UleetBackup UncleNox UnSane vanGoHAM vanHOJ vanKwok vanWings Volcania WholeWheat WinWaker woundBomb woundFacewoundGasm woundGrin woundJJ woundOil WTRuck WutFace xentiBox xentiRBG xentiSabotage xentiShrimp YouWHY```"]);
-          setTimeout(function() {
-            console.log('sleeping thread');
-          }, 500);
+          sendMessages(channelID, ["**Listing all emotes what I know: **",
+            "```4Head ANELE ArsonNoSexy AsianGlow AtGL AthenaPMS AtIvy AtWW azaConrad azaDRAIN azaERASED azaFox azaHAPPY azaHHH azaMAD azaRAT BabyRage BatChest BCWarrior BibleThump BigBrother BionicBunion BlargNaut BloodTrail boomerBoomerMosta boomerBoomerStapler  boomerDrink boomerGlantz boomerInc boomerKappe boomerKrone boomerMinus boomerPizza boomerSabotage BORT BrainSlug BrokeBack BuddhaBar chingAus chingBday chingBig chingBinbash chingBomb chingEdge chingFace chingHype chingJail chingMaiku chingMod chingMoney chingPanda chingPotato chingS chingSense chingSub chingTgi chingTroll chingW CougarHunt DAESuppy dan10 dan7 danBad danCreep danCringe danCry danCute danDead danDerp danDuck danGasm danGasp danGrump danHype danLewd danLol danLove danNo danPalm danPoop danRage danRekt danScare danSexy DansGame danThink danTrain danWave danWTF danYay danYes DatSheffy DBstyle DendiFace dewD dewDel dewDitch dewDoge dewDown dewDream dewGloves dewHex dewHS dewJones dewKass dewMad dewSwag dewTowel dewTrain dewUp dewW dewWhip diablousKappa DogFace duckArthas duckBA duckBarrel duckBedHead duckBoop duckCoffee duckDerp duckDuckFlex duckGA duckMama duckParty duckPist duckQuappa duckSad duckSkadoosh duckSpread duckTenTen duckTrain duckZIN EagleEye EleGiggle emoEz emoGlock emoLoser emoRekt emoRufusZ emoSwag emoVorteX emoWoo EvilFetus FailFish FPSMarksman FrankerZ FreakinStinkin FUNgineer FunRun FuzzyOtterOO GasJoker GingerPower GrammarKing HassaanChop HassanChop heroDEEP heroDITCH heroFACEPALM heroNEXT heroSMILE heroWAFFLE HeyGuys HotPokket HumbleLife hydraGREEN hydraHEIL hydraLUNA hydraMURAT hydraPURPLE hydraRUSSIA hydraSquare hydraXMAS ItsBoshyTime jaxer123```",
+            "```jaxer4Sheffy jaxerFuzz jaxerGasm jaxerGive jaxerPicnic jaxerPotato Jebaited JKanStyle JonCarnage KAPOW Kappa Keepo KevinTurtle Kippa Kreygasm krippBird krippCat krippChampz krippDoge krippDonger krippDonger2 krippEye krippFist krippGive krippLucky krippOJ krippRage krippRiot krippSheffy krippSleeper krippSuccy krippThump krippToon krippW krippWall krippWTF KZassault KZcover KZguerilla KZhelghast KZowl KZskull leaD leaDinodoge leaDS leaG leaH leaHS leaHug leaK leaKing leaKobe leaL leaLethal leaPedo leaRage leaRIP leaSkal leaSubHorn leaTbirds leaThump lirikAppa lirikB lirikC lirikCLENCH lirikCRASH lirikCRY lirikD lirikDEAD lirikF lirikFAT lirikGasm lirikGOTY lirikH lirikHug lirikHYPE lirikL lirikM lirikMLG lirikNICE lirikO lirikPOOP lirikPVP lirikRage lirikREKT lirikRIP lirikTEN lirikThump lirikTRASH lirikW lirikWc Mau5 mcaT MechaSupes mitch1 mitchAbort mitchCall mitchDewkappa mitchDood mitchDream mitchHi-Yah mitchKamehameha mitchLipstick mitchMitchEw mitchQuest mitchTheLaw mitchTyrone mitchW mitchWW mitchYoloBlock MrDestructoid MVGame NightBat NinjaTroll nmpKerpa nmpNMPbomb nmpSAD nmpSweg nmpTHELORD nmpThump nmpTUDI nmpW NoNoSpot noScope NotAtk OMGScoots OneHand OpieOP OptimizePrime panicBasket PanicVis PazPazowitz PeoplesChamp PermaSmug PicoMause pingApproves pingCoon pingKappa pingNana pingOh pingShiny pingStar pingW PipeHype PJHarley PJSalt PMSTwin PogChamp Poooound PraiseIt PRChase primeBeard primeCoin primeFeel primeKappa primeLaugh primeLoot primeScum primeSquid PunchTrees PuppeyFace RaccAttack RalpherZ reckCry reckD reckDDOS reckDealer reckFarmer reckHello reckJenna reckJew reckRiot reckS reckSleeper reckSND reckT reckTime reckW RedCoat```",
+            "```ResidentSleeper RitzMitz rukiAdult rukiAmigo rukiBuddy rukiCanadaEh rukiCreep rukiCry rukiDerp rukiDownGoes rukiDoYou rukiGasm rukiHarryKappa rukiPunch rukiSmug rukiTea rukiWizRuki rukiWot RuleFive sdzParty sdzThirsty sdzTmnt sdzTreebeard Shazam shazamicon ShazBotstix ShibeZ SMOrc SMSkull snutzAmigo snutzBear snutzChika snutzFDB snutzGasm snutzHorse snutzHype snutzLove snutzMoney snutzPaladin snutzRamen snutzTrain snutzTurtle snutzWub SoBayed sodaAwkward sodaB sodaBAM sodaBD sodaBibleThump sodaBJP sodaBT sodaC sodaCRINGE sodaDEAL sodaDI sodaDOGE sodaDS sodaDU sodaFP sodaG sodaGASM sodaGG sodaGive sodaGS sodaHeyGuys sodaHYPE sodaIMAPELICAN sodaKappa sodaKYLE sodaMicMuted sodaMLG sodaNOPE sodaPETA sodaPYAH sodaRB sodaREKT sodaRIOT sodaRIP sodaROGER sodaSENPAI sodaTD sodaUpist sodaW sodaWELCOME sodaWH SoonerLater SriHead SSSsss StoneLightning StrawBeary SuperVinlin SwiftRage talbFace talbHappy talbLewd talbSad talbSloth talbTroll talbWheresbyron taureHartz taureKommerz taureMic taureSchimmel taureSnipe taureUSB TF2John thatBob thatDemMelons thatKawaii thatLOL thatScumbag thatSwine thatThirst thatWhiteKnight TheRinger TheTarFu TheThing ThunBeast TinyFace TooSpicy towAim towBANNED towBeer towBolvar towByah towDerp towHAMUP towJesus towJoe towKappa towOface towPalm towPoop towRage towRekt towRip towShappens towShots towSkinTowel towThump towTrain towVACBOSS towW towWtf TriHard TTours UleetBackup UncleNox UnSane vanGoHAM vanHOJ vanKwok vanWings Volcania WholeWheat WinWaker woundBomb woundFace woundGasm woundGrin woundJJ woundOil WTRuck WutFace xentiBox xentiRBG xentiSabotage xentiShrimp YouWHY```"
+          ]);
           break;
 
+        case '~lisths':
+          sendMessages(channelID, ["**Listing all homestuck emotes what I know: "]);
+          sendMessages(channelID, ["```abandonthread adventuretime angrykanaya angrykarkat angryrose angryvriska animedave animekat aradiasmile araneaglare araneaohshit araneaswoon areyounext arm arquius ballpit bladekind blap blueslimer boredjade bro bucketfaced caliborndazed calibornohshit calibornswoon calliehappy crainbow creepyaradia crotchstare dafuq damarasmoke dave daveannoyed daveno dawww dirkhungover dirksad dirkwtf disapproval docfacepalm doze drunkass drunkrose dutton egbertkick equius equiusponder everybodyout eviljane eyewear facepaw feferi fixthis fuckfuckfuck fuckingincredible fuckno gamzeeohshit gamzeeslice gamzeewave gamzeewtf geromy halfhat happyjohn hat highfive hjeff horussomgyes hugs hussie igiveup jackbluh jackdwi jack_ jadeglare jadeswoon jakejane jakeno jakeomg jane janebackup janeblush janestare janewtf johnbluh johnbreakdown johncry johnderp johneyeroll johnfacepalm johnfistshake johngulp johnheart johnno johnnope johnstaredown johnstupid johntantrum johnuhh johnvictory kanaya kanayacry kanayaeyeroll kankriwhistle karkatbreakdown karkatchair karkatdaveohshit karkatfacepalm keepingitreal kksad kkwtf lilcal meenahswoon meenahugh meenahwankwank mituna mitunafall mitunasad moustachefire mspa mustachefire nepetahappy nohat obvious ohdeargod philosofrog phweet pissedjade pissedkanaya plotthicken pumpkin roseeyebrows rosefacepalm roseintrigued roseohno roseoof roserofl roxycry roxyderp roxysad roxyswoon rufiohwhoa saccharinedisposition sadjane sbahjgoddamn sbahjhehehe sbahjstfu sbro shenanigans smartass sobored spacer splrrr storytime stupid sup sweetcatch tavrosfacepalm terezifacepalm tereziglare terezipoint terezi_ theresproblems tricksterjane trollsonatime vriska vriskashoosh vriskaswoon wakeupcall weredoingthisman whatnow wrinklefucker wtf yeahdogg youremfwelcome yourewelcome```"]);
+          break;
+
+        case '~help':
+          sendMessages(channelID, ["**Commands what I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhs <argument>- posts a homestuck emote\nlist - lists every loaded emote\nlisths - lists every loaded homestuck emote\nhelp - shows this silly```"]);
+
+          break;
         default:
           var str = "[DEBUG: COMMAND]\n\n**Received command** `" + commandReceived + "` \n**with arguments** `" + arguments + "` \n**Sender ID**: `@" + userID + "`";
           sendMessages(channelID, [str]);
@@ -185,14 +226,6 @@ bot.on("message", function(user, userID, channelID, message, rawEvent) {
 
       }
     }
-
-
-  if (message === "!changename") {
-    bot.editUserInfo({
-      password: 'INSERT PASSWORD HERE', //Required
-      username: 'EridanBot' //Optional
-    });
-  }
 });
 
 bot.on("presence", function(user, userID, status, rawEvent) {
