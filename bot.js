@@ -61,6 +61,8 @@ var commands = {
     permission: {
       onlyMonitored: true
     },
+    cooldown: 5000,
+    lastTime: 0,
     action: function(args, e) {
       doReddit(args, e);
     }
@@ -286,7 +288,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     if (userID != config.masterID) {
       bot.sendMessage({
         to: channelID,
-        message: "<@" + userID + "> Only Windsdon can use that command!"
+        message: "<@" + userID + "> Only Zephy can use that command!"
       });
       return;
     }
@@ -306,6 +308,19 @@ function processMessage(user, userID, channelID, message, rawEvent) {
   }
 
   if (commands[parsed.command]) {
+    if (commands[parsed.command].cooldown) {
+      if ((new Date()).getTime() - commands[parsed.command].lastTime < commands[parsed.command].cooldown) {
+        bot.sendMessage({
+          to: channelID,
+          message: "<@" + userID + "> you are doing that too fast!"
+        });
+        bot.deleteMessage({
+          channel: channelID,
+          messageID: rawEvent.d.id
+        });
+        return;
+      }
+    }
     commands[parsed.command].action(parsed.args, {
       "user": user,
       "userID": userID,
@@ -313,6 +328,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       "rawEvent": rawEvent,
       "bot": bot,
     });
+    commands[parsed.command].lastTime = (new Date()).getTime();
   }
 }
 
@@ -322,7 +338,7 @@ function parse(string) {
   }*/
 
   var pieces = string.split(" ");
-  if(pieces[0] != config.listenTo){
+  if (pieces[0] != config.listenTo) {
     return false
   }
   /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
@@ -333,6 +349,31 @@ function parse(string) {
   };
 }
 
+
+function canUserRun(command, uid, channelID) {
+  if (!commands[command]) {
+    return false;
+  }
+
+  if (!commands[command].permission.uid && !commands[command].permission.group) {
+    return true;
+  }
+
+  if (commands[command].disabled != undefined){
+    return false;
+  }
+  if (commands[command].permission.uid) {
+    for (var i = 0; i < commands[command].permission.uid.length; i++) {
+      if (uid == commands[command].permission.uid[i]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+//TODO IMPLEMENT NSFW FILTERING/CHANNEL
 function doReddit(args, e) {
   var arguments = args;
   reddit.getSubreddit(arguments, function(response) {
@@ -340,13 +381,20 @@ function doReddit(args, e) {
       channel: e.channelID,
       messageID: e.rawEvent.d.id
     });
-    console.log(response);
+
     if (response != undefined) {
+      if(response.NSFW == true && config.redditAdultMode == false){
+        sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I am in SFW mode on this channel and you're trying to get NSFW**"]);
+        return;
+      }
+
       sendMessages(e, ["<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** <3"]);
-      response = response.replace(/^https:\/\//i, 'http://');
-      var filename = "temp\\" + response.split("/").pop();
+      var link = response.link.toString();
+      link = link.replace(/^https:\/\//i, 'http://');
+
+      var filename = "temp\\" + link.split("/").pop();
       var file = fs.createWriteStream(filename);
-      var request = http.get(response, function(response) {
+      var request = http.get(link.toString(), function(response) {
         response.pipe(file);
       });
       request.on('close', function() {
@@ -363,25 +411,4 @@ function doReddit(args, e) {
       });
     } else sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I can't find any image for you on /r/" + args + " ;-;**"]);
   });
-}
-
-
-function canUserRun(command, uid, channelID) {
-  if (!commands[command]) {
-    return false;
-  }
-
-  if (!commands[command].permission.uid && !commands[command].permission.group) {
-    return true;
-  }
-
-  if (commands[command].permission.uid) {
-    for (var i = 0; i < commands[command].permission.uid.length; i++) {
-      if (uid == commands[command].permission.uid[i]) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }

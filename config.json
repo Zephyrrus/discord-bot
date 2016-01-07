@@ -2,5 +2,6 @@
 	"deletereddit": false,
 	"masterID": "132166948359241728",
 	"username": "Rin",
-	"listenTo": "rin"
+	"listenTo": "rin",
+	"redditAdultMode": false
 }

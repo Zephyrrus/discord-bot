@@ -19,22 +19,23 @@ var reddit = new Snoocore({
 function getSubreddit(subreddit, callback) {
   var ret;
   var links = [];
+  function _populateList(result){
+    for (var child of result.get.data.children) {
+      child.data.url = child.data.url.replace(/\?.*$/i, '');
+      var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
+      if (r.test(child.data.url)) links.push({"link": child.data.url, "NSFW": child.data.over_18 || false});
+    }
+  }
   reddit('/r/' + subreddit + '/hot').listing({
     limit: 100
   }).then(
     function(result) {
-      for (var child of result.get.data.children) {
-        child.data.url = child.data.url.replace(/\?.*$/i, '');
-        var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
-        if (r.test(child.data.url)) links.push(child.data.url);
-      }
+      _populateList(result);
+      if(result.get.after == null && links.length === 0) return callback(undefined); // invalid subreddit, return without getting the next slice
       return result.next(); // send the paging to the next then for getting the next slice
-    }).then(function(result) { // get the next slice for more images
-      for (var child of result.get.data.children) {
-        child.data.url = child.data.url.replace(/\?.*$/i, '');
-        var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
-        if (r.test(child.data.url)) links.push(child.data.url);
-      }
+    }).then(function(result) {
+      if(result == undefined) return callback(undefined);
+      _populateList(result);
       return callback(links[randomInt(0, links.length)]);
   });
 }
