@@ -16,52 +16,33 @@ var reddit = new Snoocore({
   }
 });
 
-// TODO REMOVE THIS LATER AND USE getSubreddit UNIVERSALLY
-function getKemo(callback) {
-  var ret;
-  var links = [];
-  reddit('/r/kemonomimi/hot').get().then(function(result) {
-    //console.log(JSON.stringify(result.data.children[0].data.url, null, '\t').replace(/`/g, '\u200B`'));
-    for (var child of result.data.children) {
-      var r = new RegExp("(\.png|\.jpg|\.gif|\.png,\.jpg,\.gif)");
-      //console.log(r.test(child.data.url));
-      if(r.test(child.data.url)) links.push(child.data.url);
-      //console.log(JSON.stringify(child.data.url, null, '\t').replace(/`/g, '\u200B`'));
-    }
-    //console.log(links);
-    var random = randomInt(0, links.length);
-    console.log("Random: " + random);
-    return callback(links[random]);
-  });
-
-}
-
 function getSubreddit(subreddit, callback) {
   var ret;
   var links = [];
-  reddit('/r/' + subreddit + '/hot').get().then(
+  reddit('/r/' + subreddit + '/hot').listing({
+    limit: 100
+  }).then(
     function(result) {
-    //console.log(JSON.stringify(result.data.children[0].data.url, null, '\t').replace(/`/g, '\u200B`'));
-    for (var child of result.data.children) {
-      var r = new RegExp("(\.png|\.jpg|\.gif|\.png,\.jpg,\.gif)");
-      //console.log(r.test(child.data.url));
-      if(r.test(child.data.url)) links.push(child.data.url);
-      //console.log(JSON.stringify(child.data.url, null, '\t').replace(/`/g, '\u200B`'));
-    }
-    //console.log(links);
-    return callback(links[randomInt(0, links.length)]);
+      for (var child of result.get.data.children) {
+        child.data.url = child.data.url.replace(/\?.*$/i, '');
+        var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
+        if (r.test(child.data.url)) links.push(child.data.url);
+      }
+      return result.next(); // send the paging to the next then for getting the next slice
+    }).then(function(result) { // get the next slice for more images
+      for (var child of result.get.data.children) {
+        child.data.url = child.data.url.replace(/\?.*$/i, '');
+        var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
+        if (r.test(child.data.url)) links.push(child.data.url);
+      }
+      return callback(links[randomInt(0, links.length)]);
   });
 }
 
-function randomInt (low, high) {
-    return Math.floor(Math.random() * (high - low) + low);
+function randomInt(low, high) {
+  return Math.floor(Math.random() * (high - low) + low);
 }
-/*function randomInt(min,max)
-{
-    return Math.floor(Math.random()*(max-min+1)+min);
-}*/
 
 module.exports = {
-	getKemo: getKemo,
   getSubreddit: getSubreddit
 };

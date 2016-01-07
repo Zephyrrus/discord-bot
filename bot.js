@@ -22,17 +22,18 @@ bot.on("err", function(error) {
 });
 
 bot.on("ready", function(rawEvent) {
+  bot.editUserInfo({
+    password: auth.password, //Required
+    username: config.username //Optional
+  })
   console.log("Connected!");
   console.log("Logged in as: ");
   console.log(bot.username + " - (" + bot.id + ")");
   bot.setPresence({
     idle_since: null,
-    game: "Doing fishy stuffs :D"
+    game: "Being awesome"
   });
-  bot.editUserInfo({
-    password: auth.email, //Required
-    username: 'Eribot' //Optional
-  })
+
   console.log("Set status!");
 });
 
@@ -97,7 +98,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, ["```" + JSON.stringify(rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
+      sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
     }
   },
   echo: {
@@ -105,7 +106,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, [arguments]);
+      sendMessages(e, [args.join(" ")]);
     }
   },
   bat: {
@@ -309,23 +310,26 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       "user": user,
       "userID": userID,
       "channelID": channelID,
-      "event": rawEvent,
+      "rawEvent": rawEvent,
       "bot": bot,
     });
   }
 }
 
 function parse(string) {
-  if (string.charAt(0) != '~') {
+  /*if (string.charAt(0) != '~') {
     return false;
-  }
+  }*/
 
   var pieces = string.split(" ");
-  pieces[0] = pieces[0].slice(1, pieces[0].length);
-
+  if(pieces[0] != config.listenTo){
+    return false
+  }
+  /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
+  //console.log(pieces.slice(1, pieces.length));
   return {
-    command: pieces[0],
-    args: pieces.slice(1, pieces.length)
+    command: pieces[1],
+    args: pieces.slice(2, pieces.length)
   };
 }
 
@@ -334,11 +338,11 @@ function doReddit(args, e) {
   reddit.getSubreddit(arguments, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
-      messageID: e.event.d.id
+      messageID: e.rawEvent.d.id
     });
     console.log(response);
     if (response != undefined) {
-      sendMessages(e, ["<@" + e.userID + ">: **Random image from /r/" + args + " coming in comrade!**"]);
+      sendMessages(e, ["<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** <3"]);
       response = response.replace(/^https:\/\//i, 'http://');
       var filename = "temp\\" + response.split("/").pop();
       var file = fs.createWriteStream(filename);
@@ -357,7 +361,7 @@ function doReddit(args, e) {
           }
         });
       });
-    } else sendMessages(e, ["<@" + e.userID + ">: **The subreddit /r/" + args + " has no images or it's invalid!**"]);
+    } else sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I can't find any image for you on /r/" + args + " ;-;**"]);
   });
 }
 
