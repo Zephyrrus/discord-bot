@@ -1,34 +1,25 @@
 {
-  "name": "discord.io",
-  "version": "1.6.3",
-  "description": "JavaScript interface for Discord.",
-  "main": "./lib/index.js",
+  "name": "Eribot",
+  "version": "1.0.5",
+  "description": "Bot for discord chat based on discord.io",
+  "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "Zephy",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/izy521/discord.io.git"
+    "url": "git+https://git.ssddevs.com/Zephy/discord-bot.git"
   },
-  "keywords": [
-    "Discord",
-    "Discordapp",
-    "Client",
-    "Bot",
-    "Library"
-  ],
-  "author": "izy521",
-  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/izy521/discord.io/issues"
+    "url": "https://git.ssddevs.com/Zephy/discord-bot/issues"
   },
-  "homepage": "https://github.com/izy521/discord.io#readme",
+  "homepage": "https://git.ssddevs.com/Zephy/discord-bot#readme",
   "dependencies": {
-    "cleverbot.io": "^1.0.4",
+    "discord.io": "^1.6.5",
     "request": "^2.61.0",
-    "ws": "^0.8.0"
-  },
-  "optionalDependencies": {
-    "node-opus": "^0.1.0"
+    "ws": "^0.8.0",
+    "snoocore": "^3.2.1"
   }
 }
