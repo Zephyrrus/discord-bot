@@ -1,7 +1,7 @@
 var Snoocore = require('snoocore');
 var auth = require('./auth.json');
 var reddit = new Snoocore({
-  userAgent: 'DISCORD.bot', // unique string identifying the app
+  userAgent: 'rin discord.bot', // unique string identifying the app
   throttle: 300,
   oauth: {
     type: 'script',
