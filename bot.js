@@ -269,7 +269,7 @@ function download(url, dest, cb) {
 
 function processMessage(user, userID, channelID, message, rawEvent) {
   console.log("-----------");
-  console.log("Got message " + message.replace(/[^A-Za-z0-9 ]/, '?') + " on channel " + channelID.replace(/[^A-Za-z0-9 ]/, '?') + " from " + user + " (" + userID.replace(/[^A-Za-z0-9 ]/, '?') + ")");
+  console.log("Got message: '" + message.replace(/[^A-Za-z0-9 ]/, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/, '?') + ")");
 
   if (userID == bot.id) {
     return;
