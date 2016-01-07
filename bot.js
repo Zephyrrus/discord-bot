@@ -14,6 +14,8 @@ var startTime = (new Date()).getTime();
 var personalRoom = 133337987520921600;
 var reddit = require('./reddit');
 var config = require('./config.json');
+var database = new (require("./database.js"))();
+var away = [];
 var VERSION = "1.0.7";
 config.deletereddit = config.deletereddit || false;
 /*----------------------------------------------*/
@@ -43,6 +45,7 @@ bot.on("ready", function(rawEvent) {
 var commands = {
   ping: {
     permission: {
+      uid: [config.masterID],
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
@@ -54,6 +57,8 @@ var commands = {
   },
   id: {
     permission: {
+      uid: [config.masterID],
+      group: ["dev"],
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
@@ -100,15 +105,6 @@ var commands = {
     },
     action: function(args, e) {
       sendMessages(e, ["<@" + e.userID + ">: **Your ID**: `@" + e.userID + "`"]);
-    }
-  },
-  json: {
-    permission: {
-      uid: [config.masterID],
-      onlyMonitored: true
-    },
-    action: function(args, e) {
-      sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
     }
   },
   echo: {
@@ -197,7 +193,8 @@ var commands = {
   },
   list: {
     permission: {
-      onlyMonitored: true
+      onlyMonitored: true,
+      group: ["dev"],
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
@@ -234,6 +231,55 @@ var commands = {
       sendMessages(e, ["**Commands what I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhs <argument>- posts a homestuck emote\nlist - lists every loaded emote\nlisths - lists every loaded homestuck emote\nhelp - shows this silly```"]);
     }
   },
+  come: {
+      permission: {
+          group: ["dev"],
+          onlyMonitored: false
+      },
+      action: function(args, e) {
+          if(e.db.channels.indexOf(e.channelID) != -1) {
+              e.bot.sendMessage({
+                  to: e.channelID,
+                  message: "Silly, I am already here :3"
+              });
+              return;
+          }
+          e.db.channels.push(e.channelID);
+          e.bot.sendMessage({
+              to: e.channelID,
+              message: "I am here now and will listen to all of your commands <3"
+          });
+          e.db.saveConfig();
+      }
+  },
+  leave: {
+      permission: {
+          group: ["dev"],
+          onlyMonitored: true
+      },
+      action: function(args, e) {
+          if(e.db.channels.indexOf(e.channelID) == -1) {
+              return;
+          }
+          e.db.channels.splice(e.db.channels.indexOf(e.channelID), 1);
+          e.db.saveConfig();
+          e.bot.sendMessage({
+              to: e.channelID,
+              message: "I will leave this channel now ;_;"
+          });
+      }
+  },
+  json: {
+    permission: {
+      uid: [config.masterID],
+      group: ["dev"],
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
+    }
+  },
+  group: require("./command_group.js"),
   debug: {
     permission: {
       uid: [config.masterID],
@@ -355,6 +401,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       "channelID": channelID,
       "rawEvent": rawEvent,
       "bot": bot,
+      "db": database
     });
     commands[parsed.command].lastTime = (new Date()).getTime();
   }
@@ -379,26 +426,55 @@ function parse(string) {
 
 
 function canUserRun(command, uid, channelID) {
-  if (!commands[command]) {
-    return false;
-  }
 
-  if (!commands[command].permission.uid && !commands[command].permission.group) {
-    return true;
-  }
-
-  if (commands[command].disabled != undefined){
-    return false;
-  }
-  if (commands[command].permission.uid) {
-    for (var i = 0; i < commands[command].permission.uid.length; i++) {
-      if (uid == commands[command].permission.uid[i]) {
-        return true;
-      }
+  if(!commands[command]) {
+        if(database.channels.indexOf(channelID) == -1) {
+            return false;
+        }
+        if(database.messages[command]) {
+            return true;
+        }
+        if(database.images[command]) {
+            return true;
+        }
+        return false;
     }
-  }
 
-  return false;
+    if(!commands[command].permission) {
+        if(database.channels.indexOf(channelID) != -1){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    if(commands[command].permission.onlyMonitored) {
+        if(database.channels.indexOf(channelID) == -1){
+            return false;
+        }
+    }
+
+    if(!commands[command].permission.uid && !commands[command].permission.group) {
+        return true;
+    }
+
+    if(commands[command].permission.uid) {
+        for(var i = 0; i < commands[command].permission.uid.length; i++) {
+            if(uid == commands[command].permission.uid[i]) {
+                return true;
+            }
+        }
+    }
+
+    if(commands[command].permission.group) {
+        for(var i = 0; i < commands[command].permission.group.length; i++) {
+            if(database.isUserInGroup(uid, commands[command].permission.group[i])) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 //TODO IMPLEMENT NSFW FILTERING/CHANNEL
