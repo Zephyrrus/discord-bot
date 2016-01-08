@@ -1,6 +1,6 @@
 /*Variable area*/
 var VERSION = "1.1.1";
-var MODE = "production";
+var MODE = "development";
 var auth = require('./auth.json');
 var Discordbot = require('discord.io');
 var fs = require('fs');
@@ -117,6 +117,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
+      //ADD CHECK FOR -H ARGS WHICH REMOVES THE FROM THINGIE
       sendMessages(e, [args.join(" ") + " [<@" + e.userID + ">]"]);
       e.bot.deleteMessage({
         channel: e.channelID,
@@ -283,7 +284,18 @@ var commands = {
       sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
     }
   },
+  love:{
+    permission: {
+      uid: [config.masterID],
+      group: ["waifu"],
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      sendMessages(e, ["<@" + e.userID + "> \u2764"]);
+    }
+  },
   group: require("./command_group.js"),
+  //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
   greet: require("./command_greet.js"),
   debug: {
     permission: {
@@ -291,7 +303,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      if(args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake for `" + startTime + "`\nI am in `" + MODE + '` mode right now.'])
+      if(args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + '` mode right now.'])
     }
   }
 }
@@ -421,6 +433,9 @@ function parse(string) {
   if (pieces[0].toLowerCase() != config.listenTo) {
     return false
   }
+
+  if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
+
   /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
   //console.log(pieces.slice(1, pieces.length));
   return {
@@ -520,4 +535,9 @@ function doReddit(args, e) {
       });
     } else sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I can't find any image for you on /r/" + args + " ;-;**"]);
   });
+}
+
+function tm(unix_tm) {
+        var dt = new Date(unix_tm*1000);
+        return dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + dt;
 }
