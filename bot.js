@@ -1,6 +1,6 @@
 /*Variable area*/
-var VERSION = "1.1.1";
-var MODE = "development";
+var VERSION = "1.1.2";
+var MODE = "production";
 var auth = require('./auth.json');
 var Discordbot = require('discord.io');
 var fs = require('fs');
