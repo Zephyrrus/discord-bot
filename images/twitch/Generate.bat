@@ -1,0 +1,1 @@
+for /r %%i in (*) do echo "%%i", "%%i" >> files.txt

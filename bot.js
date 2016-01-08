@@ -16,7 +16,8 @@ var reddit = require('./reddit');
 var config = require('./config.json');
 var database = new (require("./database.js"))();
 var away = [];
-var VERSION = "1.0.7";
+var MODE = "production";
+var VERSION = "1.1.0";
 config.deletereddit = config.deletereddit || false;
 /*----------------------------------------------*/
 /*Event area*/
@@ -144,32 +145,10 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      /*var path = "images/emotes/" + args.join(" ") + ".png";
-      console.log(path);
-      if (args != null) {
-        fs.exists(path, function(exists) {
-          if (exists) {
-            //sendMessages(e, ["[<@" + e.userID + ">]"]);
-            e.bot.uploadFile({
-              to: e.channelID,
-              file: fs.createReadStream(path)
-            }, function(response) { //CB Optional
-              //	console.log(response);
-            });
-            e.bot.deleteMessage({
-              channel: e.channelID,
-              messageID: e.rawEvent.d.id
-            });
-          } else {
-            sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that emote right now ;_;**"]);
-          }
-        });
-      }*/
-      console.log(args);
-      if(e.db.images[args[0]]) {
+      if(e.db.images[args[0].toLowerCase()]) {
             bot.uploadFile({
                 to: e.channelID,
-                file: fs.createReadStream(database.images[args[0]])
+                file: fs.createReadStream(database.images[args[0].toLowerCase()])
             })
         }
     }
@@ -308,7 +287,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, ["[DEBUG: COMMAND]\n\n**Received command** `" + commandReceived + "` \n**with arguments** `" + arguments + "` \n**Sender ID**: `@" + userID + "`"]);
+      if(args[0] == "info") sendMessage(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake for `" + startTime + "`\nI am in `" + MODE + '` mode right now.'])
     }
   }
 }
