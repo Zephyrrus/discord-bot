@@ -4,7 +4,7 @@ var config = require('./config.json');
 module.exports = {
     permission: {
         uid: [config.masterID],
-        group: ["dev"],
+        group: ["root"],
         onlyMonitored: true
     },
     action: function(args, e) {

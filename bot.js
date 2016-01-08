@@ -114,7 +114,11 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, [args.join(" ")]);
+      sendMessages(e, [args.join(" ") + " [<@" + e.userID + ">]"]);
+      e.bot.deleteMessage({
+        channel: e.channelID,
+        messageID: e.rawEvent.d.id
+      });
     }
   },
   bat: {
@@ -126,7 +130,7 @@ var commands = {
     action: function(args, e) {
       sendMessages(e, ["**Guide from** <@132130219631837184> **to run a bat.**"]);
       bot.uploadFile({
-        channel: e.channelID,
+        to: e.channelID,
         file: fs.createReadStream("images/giphy.gif")
       }, function(response) { //CB Optional
 
@@ -140,13 +144,14 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      var path = "images/emotes/" + args.join(" ") + ".png";
+      /*var path = "images/emotes/" + args.join(" ") + ".png";
       console.log(path);
       if (args != null) {
         fs.exists(path, function(exists) {
           if (exists) {
+            //sendMessages(e, ["[<@" + e.userID + ">]"]);
             e.bot.uploadFile({
-              channel: e.channelID,
+              to: e.channelID,
               file: fs.createReadStream(path)
             }, function(response) { //CB Optional
               //	console.log(response);
@@ -159,7 +164,14 @@ var commands = {
             sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that emote right now ;_;**"]);
           }
         });
-      }
+      }*/
+      console.log(args);
+      if(e.db.images[args[0]]) {
+            bot.uploadFile({
+                to: e.channelID,
+                file: fs.createReadStream(database.images[args[0]])
+            })
+        }
     }
   },
   hs: {
@@ -175,7 +187,7 @@ var commands = {
         fs.exists(path, function(exists) {
           if (exists) {
             e.bot.uploadFile({
-              channel: e.channelID,
+              to: e.channelID,
               file: fs.createReadStream(path)
             }, function(response) { //CB Optional
               //	console.log(response);
@@ -228,7 +240,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["**Commands what I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhs <argument>- posts a homestuck emote\nlist - lists every loaded emote\nlisths - lists every loaded homestuck emote\nhelp - shows this silly```"]);
+      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhs <argument>- posts a homestuck emote\nlist - lists every loaded emote\nlisths - lists every loaded homestuck emote\nhelp - shows this silly```"]);
     }
   },
   come: {
@@ -245,10 +257,19 @@ var commands = {
               return;
           }
           e.db.channels.push(e.channelID);
-          e.bot.sendMessage({
-              to: e.channelID,
-              message: "I am here now and will listen to all of your commands <3"
-          });
+          if(database.isUserInGroup(e.userID, "waifu")) {
+            e.bot.sendMessage({
+                to: e.channelID,
+                message: "Your Waifu is here now \u2764"
+            });
+          }else{
+            e.bot.sendMessage({
+                to: e.channelID,
+                message: "I am here now and will listen to all of your commands \u2764"
+            });
+          }
+
+
           e.db.saveConfig();
       }
   },
@@ -280,13 +301,14 @@ var commands = {
     }
   },
   group: require("./command_group.js"),
+  greet: require("./command_greet.js"),
   debug: {
     permission: {
       uid: [config.masterID],
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(channelID, ["[DEBUG: COMMAND]\n\n**Received command** `" + commandReceived + "` \n**with arguments** `" + arguments + "` \n**Sender ID**: `@" + userID + "`"]);
+      sendMessages(e, ["[DEBUG: COMMAND]\n\n**Received command** `" + commandReceived + "` \n**with arguments** `" + arguments + "` \n**Sender ID**: `@" + userID + "`"]);
     }
   }
 }
@@ -413,13 +435,13 @@ function parse(string) {
   }*/
 
   var pieces = string.split(" ");
-  if (pieces[0] != config.listenTo) {
+  if (pieces[0].toLowerCase() != config.listenTo) {
     return false
   }
   /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
   //console.log(pieces.slice(1, pieces.length));
   return {
-    command: pieces[1],
+    command: pieces[1].toLowerCase(),
     args: pieces.slice(2, pieces.length)
   };
 }
@@ -492,7 +514,7 @@ function doReddit(args, e) {
         return;
       }
 
-      sendMessages(e, ["<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** <3"]);
+      sendMessages(e, ["<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764"]);
       var link = response.link.toString();
       link = link.replace(/^https:\/\//i, 'http://');
 
