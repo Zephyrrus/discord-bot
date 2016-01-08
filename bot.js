@@ -287,7 +287,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      if(args[0] == "info") sendMessage(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake for `" + startTime + "`\nI am in `" + MODE + '` mode right now.'])
+      if(args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake for `" + startTime + "`\nI am in `" + MODE + '` mode right now.'])
     }
   }
 }
