@@ -1,4 +1,6 @@
 /*Variable area*/
+var VERSION = "1.1.1";
+var MODE = "production";
 var auth = require('./auth.json');
 var Discordbot = require('discord.io');
 var fs = require('fs');
@@ -13,11 +15,11 @@ var bot = new Discordbot({
 var startTime = (new Date()).getTime();
 var personalRoom = 133337987520921600;
 var reddit = require('./reddit');
+if (MODE === "production") var config = require('./config.json');
+else var config = require('./config_dev.json');
 var config = require('./config.json');
 var database = new (require("./database.js"))();
 var away = [];
-var MODE = "production";
-var VERSION = "1.1.0";
 config.deletereddit = config.deletereddit || false;
 /*----------------------------------------------*/
 /*Event area*/
@@ -150,6 +152,8 @@ var commands = {
                 to: e.channelID,
                 file: fs.createReadStream(database.images[args[0].toLowerCase()])
             })
+        }else{
+          sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added."]);
         }
     }
   },
