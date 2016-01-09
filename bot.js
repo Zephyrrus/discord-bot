@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.1.2";
+var VERSION = "1.1.3";
 var MODE = "production";
 var auth = require('./auth.json');
 var Discordbot = require('discord.io');
@@ -12,7 +12,8 @@ var bot = new Discordbot({
   autorun: true
 });
 
-var startTime = (new Date()).getTime();
+var d = new Date();
+var startTime = d.getTime();
 var personalRoom = 133337987520921600;
 var reddit = require('./reddit');
 if (MODE === "production") var config = require('./config.json');
@@ -433,7 +434,7 @@ function parse(string) {
   if (pieces[0].toLowerCase() != config.listenTo) {
     return false
   }
-
+  if (pieces[1] === undefined) return null;
   if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
 
   /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
