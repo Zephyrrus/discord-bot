@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.1.3";
+var VERSION = "1.1.4";
 var MODE = "production";
 var auth = require('./auth.json');
 var Discordbot = require('discord.io');
@@ -12,14 +12,12 @@ var bot = new Discordbot({
   autorun: true
 });
 
-var d = new Date();
-var startTime = d.getTime();
+var startTime = Math.round(new Date() / 1000);;
 var personalRoom = 133337987520921600;
 var reddit = require('./reddit');
 if (MODE === "production") var config = require('./config.json');
 else var config = require('./config_dev.json');
-var config = require('./config.json');
-var database = new (require("./database.js"))();
+var database = new(require("./database.js"))();
 var away = [];
 config.deletereddit = config.deletereddit || false;
 /*----------------------------------------------*/
@@ -38,7 +36,7 @@ bot.on("ready", function(rawEvent) {
   console.log(bot.username + " - (" + bot.id + ")");
   bot.setPresence({
     idle_since: null,
-    game: "Being awesome"
+    game: config.defaultStatus
   });
   console.log("Version: " + VERSION);
   console.log("Set status!");
@@ -149,14 +147,14 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      if(e.db.images[args[0].toLowerCase()]) {
-            bot.uploadFile({
-                to: e.channelID,
-                file: fs.createReadStream(database.images[args[0].toLowerCase()])
-            })
-        }else{
-          sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added."]);
-        }
+      if (e.db.images[args[0].toLowerCase()]) {
+        bot.uploadFile({
+          to: e.channelID,
+          file: fs.createReadStream(database.images[args[0].toLowerCase()])
+        })
+      } else {
+        sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added."]);
+      }
     }
   },
   hs: {
@@ -211,7 +209,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-     /* sendMessages(e, ["**Listing all emotes what I know: **"]);
+      /* sendMessages(e, ["**Listing all emotes what I know: **"]);
       sendMessages(e, ["**Listing all homestuck emotes what I know: "]);
       sendMessages(e, ["```abandonthread adventuretime angrykanaya angrykarkat angryrose angryvriska animedave animekat aradiasmile araneaglare araneaohshit araneaswoon areyounext arm arquius ballpit bladekind blap blueslimer boredjade bro bucketfaced caliborndazed calibornohshit calibornswoon calliehappy crainbow creepyaradia crotchstare dafuq damarasmoke dave daveannoyed daveno dawww dirkhungover dirksad dirkwtf disapproval docfacepalm doze drunkass drunkrose dutton egbertkick equius equiusponder everybodyout eviljane eyewear facepaw feferi fixthis fuckfuckfuck fuckingincredible fuckno gamzeeohshit gamzeeslice gamzeewave gamzeewtf geromy halfhat happyjohn hat highfive hjeff horussomgyes hugs hussie igiveup jackbluh jackdwi jack_ jadeglare jadeswoon jakejane jakeno jakeomg jane janebackup janeblush janestare janewtf johnbluh johnbreakdown johncry johnderp johneyeroll johnfacepalm johnfistshake johngulp johnheart johnno johnnope johnstaredown johnstupid johntantrum johnuhh johnvictory kanaya kanayacry kanayaeyeroll kankriwhistle karkatbreakdown karkatchair karkatdaveohshit karkatfacepalm keepingitreal kksad kkwtf lilcal meenahswoon meenahugh meenahwankwank mituna mitunafall mitunasad moustachefire mspa mustachefire nepetahappy nohat obvious ohdeargod philosofrog phweet pissedjade pissedkanaya plotthicken pumpkin roseeyebrows rosefacepalm roseintrigued roseohno roseoof roserofl roxycry roxyderp roxysad roxyswoon rufiohwhoa saccharinedisposition sadjane sbahjgoddamn sbahjhehehe sbahjstfu sbro shenanigans smartass sobored spacer splrrr storytime stupid sup sweetcatch tavrosfacepalm terezifacepalm tereziglare terezipoint terezi_ theresproblems tricksterjane trollsonatime vriska vriskashoosh vriskaswoon wakeupcall weredoingthisman whatnow wrinklefucker wtf yeahdogg youremfwelcome yourewelcome```"]);
     */
@@ -229,51 +227,51 @@ var commands = {
     }
   },
   come: {
-      permission: {
-          group: ["dev"],
-          onlyMonitored: false
-      },
-      action: function(args, e) {
-          if(e.db.channels.indexOf(e.channelID) != -1) {
-              e.bot.sendMessage({
-                  to: e.channelID,
-                  message: "Silly, I am already here :3"
-              });
-              return;
-          }
-          e.db.channels.push(e.channelID);
-          if(database.isUserInGroup(e.userID, "waifu")) {
-            e.bot.sendMessage({
-                to: e.channelID,
-                message: "Your Waifu is here now \u2764"
-            });
-          }else{
-            e.bot.sendMessage({
-                to: e.channelID,
-                message: "I am here now and will listen to all of your commands \u2764"
-            });
-          }
-
-
-          e.db.saveConfig();
+    permission: {
+      group: ["dev"],
+      onlyMonitored: false
+    },
+    action: function(args, e) {
+      if (e.db.channels.indexOf(e.channelID) != -1) {
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "Silly, I am already here :3"
+        });
+        return;
       }
+      e.db.channels.push(e.channelID);
+      if (database.isUserInGroup(e.userID, "waifu")) {
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "Your Waifu is here now \u2764"
+        });
+      } else {
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "I am here now and will listen to all of your commands \u2764"
+        });
+      }
+
+
+      e.db.saveConfig();
+    }
   },
   leave: {
-      permission: {
-          group: ["dev"],
-          onlyMonitored: true
-      },
-      action: function(args, e) {
-          if(e.db.channels.indexOf(e.channelID) == -1) {
-              return;
-          }
-          e.db.channels.splice(e.db.channels.indexOf(e.channelID), 1);
-          e.db.saveConfig();
-          e.bot.sendMessage({
-              to: e.channelID,
-              message: "I will leave this channel now ;_;"
-          });
+    permission: {
+      group: ["dev"],
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      if (e.db.channels.indexOf(e.channelID) == -1) {
+        return;
       }
+      e.db.channels.splice(e.db.channels.indexOf(e.channelID), 1);
+      e.db.saveConfig();
+      e.bot.sendMessage({
+        to: e.channelID,
+        message: "I will leave this channel now ;_;"
+      });
+    }
   },
   json: {
     permission: {
@@ -285,7 +283,7 @@ var commands = {
       sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
     }
   },
-  love:{
+  love: {
     permission: {
       uid: [config.masterID],
       group: ["waifu"],
@@ -304,7 +302,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      if(args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + '` mode right now.'])
+      if (args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + '` mode right now.'])
     }
   }
 }
@@ -385,13 +383,17 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       return;
     }
     try {
-      eval(parsed.args.join(" "));
+      bot.sendMessage({
+        to: channelID,
+        message: "```" + eval(message.substring(config.listenTo.length+3).substring(message.indexOf(" "))) + "```"
+      });
     } catch (e) {
       bot.sendMessage({
         to: channelID,
         message: "Something went wrong! \n\n```" + e.message + "```"
       });
     }
+    return;
   }
 
   if (!canUserRun(parsed.command, userID, channelID)) {
@@ -448,54 +450,54 @@ function parse(string) {
 
 function canUserRun(command, uid, channelID) {
 
-  if(!commands[command]) {
-        if(database.channels.indexOf(channelID) == -1) {
-            return false;
-        }
-        if(database.messages[command]) {
-            return true;
-        }
-        if(database.images[command]) {
-            return true;
-        }
-        return false;
+  if (!commands[command]) {
+    if (database.channels.indexOf(channelID) == -1) {
+      return false;
     }
-
-    if(!commands[command].permission) {
-        if(database.channels.indexOf(channelID) != -1){
-            return true;
-        } else {
-            return false;
-        }
+    if (database.messages[command]) {
+      return true;
     }
-
-    if(commands[command].permission.onlyMonitored) {
-        if(database.channels.indexOf(channelID) == -1){
-            return false;
-        }
+    if (database.images[command]) {
+      return true;
     }
-
-    if(!commands[command].permission.uid && !commands[command].permission.group) {
-        return true;
-    }
-
-    if(commands[command].permission.uid) {
-        for(var i = 0; i < commands[command].permission.uid.length; i++) {
-            if(uid == commands[command].permission.uid[i]) {
-                return true;
-            }
-        }
-    }
-
-    if(commands[command].permission.group) {
-        for(var i = 0; i < commands[command].permission.group.length; i++) {
-            if(database.isUserInGroup(uid, commands[command].permission.group[i])) {
-                return true;
-            }
-        }
-    }
-
     return false;
+  }
+
+  if (!commands[command].permission) {
+    if (database.channels.indexOf(channelID) != -1) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  if (commands[command].permission.onlyMonitored) {
+    if (database.channels.indexOf(channelID) == -1) {
+      return false;
+    }
+  }
+
+  if (!commands[command].permission.uid && !commands[command].permission.group) {
+    return true;
+  }
+
+  if (commands[command].permission.uid) {
+    for (var i = 0; i < commands[command].permission.uid.length; i++) {
+      if (uid == commands[command].permission.uid[i]) {
+        return true;
+      }
+    }
+  }
+
+  if (commands[command].permission.group) {
+    for (var i = 0; i < commands[command].permission.group.length; i++) {
+      if (database.isUserInGroup(uid, commands[command].permission.group[i])) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 //TODO IMPLEMENT NSFW FILTERING/CHANNEL
@@ -508,7 +510,7 @@ function doReddit(args, e) {
     });
 
     if (response != undefined) {
-      if(response.NSFW == true && config.redditAdultMode == false){
+      if (response.NSFW == true && config.redditAdultMode == false) {
         sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I am in SFW mode on this channel and you're trying to get NSFW**"]);
         return;
       }
@@ -539,6 +541,6 @@ function doReddit(args, e) {
 }
 
 function tm(unix_tm) {
-        var dt = new Date(unix_tm*1000);
-        return dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + dt;
+  var dt = new Date(unix_tm * 1000);
+  return dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + dt;
 }
