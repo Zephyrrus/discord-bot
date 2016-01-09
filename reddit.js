@@ -16,7 +16,7 @@ var reddit = new Snoocore({
   }
 });
 
-function getSubreddit(subreddit, callback) {
+function getSubreddit(subreddit, NSFWFlag, callback) {
   var ret;
   var links = [];
   function _populateList(result){
@@ -36,6 +36,11 @@ function getSubreddit(subreddit, callback) {
     }).then(function(result) {
       if(result == undefined) return callback(undefined);
       _populateList(result);
+      for(var i = links.length - 1; i >= 0; i--) {
+        if(links[i].NSFW === true && !NSFWFlag) {
+          links.splice(i, 1);
+        }
+      }
       return callback(links[randomInt(0, links.length)]);
   });
 }

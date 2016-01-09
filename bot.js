@@ -503,7 +503,7 @@ function canUserRun(command, uid, channelID) {
 //TODO IMPLEMENT NSFW FILTERING/CHANNEL
 function doReddit(args, e) {
   var arguments = args;
-  reddit.getSubreddit(arguments, function(response) {
+  reddit.getSubreddit(arguments, config.redditAdultMode, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
       messageID: e.rawEvent.d.id
