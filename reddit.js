@@ -31,7 +31,7 @@ function getSubreddit(subreddit, NSFWFlag, callback) {
   }).then(
     function(result) {
       _populateList(result);
-      if(result.get.after == null && links.length === 0) return callback(undefined); // invalid subreddit, return without getting the next slice
+      if(result.get.after == null && links.length === 0) return undefined; // invalid subreddit, return without getting the next slice
       return result.next(); // send the paging to the next then for getting the next slice
     }).then(function(result) {
       if(result == undefined) return callback(undefined);
