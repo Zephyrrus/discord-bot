@@ -15,6 +15,10 @@ var bot = new Discordbot({
 var startTime = Math.round(new Date() / 1000);;
 var personalRoom = 133337987520921600;
 var reddit = require('./reddit');
+process.argv.forEach(function(val, index, array) {
+  //console.log(index + ': ' + val);
+  if (val === "development") MODE = "development";
+});
 if (MODE === "production") var config = require('./config.json');
 else var config = require('./config_dev.json');
 var database = new(require("./database.js"))();
@@ -223,7 +227,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhs <argument>- posts a homestuck emote\nlist - lists every loaded emote\nlisths - lists every loaded homestuck emote\nhelp - shows this silly```"]);
+      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly```"]);
     }
   },
   come: {
@@ -296,6 +300,16 @@ var commands = {
   group: require("./command_group.js"),
   //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
   greet: require("./command_greet.js"),
+  info: {
+    permission: {
+      uid: [config.masterID],
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
+      sendMessages(e, ["My current status is:\nMy current version is: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + "` mode right now.\nMy current uptime in seconds is: `" + t + "`\nZephy is the best developer \u2764"]);
+    }
+  },
   debug: {
     permission: {
       uid: [config.masterID],
@@ -385,7 +399,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     try {
       bot.sendMessage({
         to: channelID,
-        message: "```" + eval(message.substring(config.listenTo.length+3).substring(message.indexOf(" "))) + "```"
+        message: "```" + eval(message.substring(config.listenTo.length + 3).substring(message.indexOf(" "))) + "```"
       });
     } catch (e) {
       bot.sendMessage({
@@ -501,6 +515,7 @@ function canUserRun(command, uid, channelID) {
 }
 
 //TODO IMPLEMENT NSFW FILTERING/CHANNEL
+//TODO ANDSWER SOME COMMANDS IN PM e.userID as channelID
 function doReddit(args, e) {
   var arguments = args;
   reddit.getSubreddit(arguments, config.redditAdultMode, function(response) {
@@ -510,15 +525,16 @@ function doReddit(args, e) {
     });
 
     if (response != undefined) {
+
       if (response.NSFW == true && config.redditAdultMode == false) {
         sendMessages(e, ["<@" + e.userID + ">: **I am sorry, I am in SFW mode on this channel and you're trying to get NSFW**"]);
         return;
       }
 
-      sendMessages(e, ["<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764"]);
+
       var link = response.link.toString();
       link = link.replace(/^https:\/\//i, 'http://');
-
+      var responseReddit = response;
       var filename = "temp/" + link.split("/").pop();
       var file = fs.createWriteStream(filename);
       var request = http.get(link.toString(), function(response) {
@@ -527,11 +543,22 @@ function doReddit(args, e) {
       request.on('close', function() {
         fs.exists(filename, function(exists) {
           if (exists) {
-            bot.uploadFile({
+            bot.sendMessage({
               to: e.channelID,
-              file: fs.createReadStream(filename)
+              message: "<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764",
+              //typing: true
             }, function(response) { //CB Optional
-              if (config.deletereddit) fs.unlink(filename);
+              bot.uploadFile({
+                to: e.channelID,
+                file: fs.createReadStream(filename)
+              }, function(response) { //CB Optional
+                bot.sendMessage({
+                  to: e.channelID,
+                  message: "Title: **" + responseReddit.title + "**",
+                  //typing: true
+                });
+                if (config.deletereddit) fs.unlink(filename);
+              });
             });
           }
         });

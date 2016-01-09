@@ -23,7 +23,7 @@ function getSubreddit(subreddit, NSFWFlag, callback) {
     for (var child of result.get.data.children) {
       child.data.url = child.data.url.replace(/\?.*$/i, '');
       var r = new RegExp("(\.png|\.jpg|\.png,\.jpg)");
-      if (r.test(child.data.url)) links.push({"link": child.data.url, "NSFW": child.data.over_18 || false});
+      if (r.test(child.data.url)) links.push({"title": child.data.title ,"link": child.data.url, "NSFW": child.data.over_18 || false});
     }
   }
   reddit('/r/' + subreddit + '/hot').listing({
