@@ -1,6 +1,6 @@
 var uidFromMention = /<@([0-9]+)>/;
 
-var config = require('./config.json');
+var config = require('../configs/config.json');
 module.exports = {
     permission: {
         uid: [config.masterID],

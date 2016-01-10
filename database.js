@@ -1,32 +1,32 @@
 var fs = require("fs");
 
 function database() {
-    this.groups = require("./groups.json");
-    this.messages = require("./messages.json");
-    this.channels = require("./channels.json");
-    this.passes = require("./pass.json");
-    this.images = require("./images.json");
+    this.groups = require("./db/groups.json");
+    this.messages = require("./db/messages.json");
+    this.channels = require("./db/channels.json");
+    //this.passes = require("./db/pass.json");
+    this.images = require("./db/images.json");
 
     this.saveConfig = function() {
-        fs.writeFile("groups.json", JSON.stringify(this.groups), function(error) {
+        fs.writeFile("db/groups.json", JSON.stringify(this.groups), function(error) {
              if (error) {
                console.error("write error:  " + error.message);
              }
         });
 
-        fs.writeFile("messages.json", JSON.stringify(this.messages), function(error) {
+        fs.writeFile("db/messages.json", JSON.stringify(this.messages), function(error) {
              if (error) {
                console.error("write error:  " + error.message);
              }
         });
 
-        fs.writeFile("channels.json", JSON.stringify(this.channels), function(error) {
+        fs.writeFile("db/channels.json", JSON.stringify(this.channels), function(error) {
              if (error) {
                console.error("write error:  " + error.message);
              }
         });
 
-        fs.writeFile("images.json", JSON.stringify(this.images), function(error) {
+        fs.writeFile("db/images.json", JSON.stringify(this.images), function(error) {
              if (error) {
                console.error("write error:  " + error.message);
              }
