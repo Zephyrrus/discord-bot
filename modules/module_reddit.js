@@ -2,7 +2,7 @@ var Snoocore = require('snoocore');
 var auth = require('../configs/auth.json');
 var config = require('../configs/config.json')
 var fs = require('fs');
-var http = require('http');
+var http = require('follow-redirects').http;
 var reddit = new Snoocore({
   userAgent: 'rin discord.bot', // unique string identifying the app
   throttle: 300,

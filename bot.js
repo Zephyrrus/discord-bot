@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.2.2 - Module branch";
+var VERSION = "1.2.4 - Module branch";
 var MODE = "production";
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";

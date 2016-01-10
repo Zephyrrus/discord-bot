@@ -8,7 +8,7 @@ module.exports = {
   },
   action: function(args, e) {
     var youtubeID = args[1];
-    var regex = new RegExp("^[a-zA-Z0-9]+$");
+    var regex = new RegExp("^[a-zA-Z0-9\-]+$");
     console.log(args[0]);
     if(args[0] === "add"){
       var alreadyExists = false;
@@ -23,12 +23,12 @@ module.exports = {
         e.db.saveConfig();
         e.bot.sendMessage({
             to: e.channelID,
-            message: "<@" + e.userID + ">  Thanks for teaching me this song `[" + youtubeID + "]`"
+            message: "<@" + e.userID + "> Thanks for teaching me this song `[" + youtubeID + "]`"
         });
       }else{
         e.bot.sendMessage({
             to: e.channelID,
-            message: "<@" + e.userID + ">  I already know this song `" + youtubeID + "`"
+            message: "<@" + e.userID + "> I already know this song `" + youtubeID + "`"
         });
       }
     }else{
