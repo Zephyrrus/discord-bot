@@ -6,5 +6,6 @@ tenc
 docs/
 temp/
 config_dev.json
-db/auth.json
-db/config_dev.json
+configs/auth.json
+configs/config_dev.json
+configs/auth_dev.json

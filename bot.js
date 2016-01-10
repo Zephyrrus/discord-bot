@@ -1,7 +1,17 @@
 /*Variable area*/
 var VERSION = "1.2.2 - Module branch";
 var MODE = "production";
-var auth = require('./configs/auth.json'); // or remove ./ for absolute path ^_^
+process.argv.forEach(function(val, index, array) {
+  if (val === "development") MODE = "development";
+});
+if (MODE === "production") {
+  var config = require('./configs/config.json');
+  var auth = require('./configs/auth.json'); // or remove ./ for absolute path ^_^
+}
+else {
+  var config = require('./configs/config_dev.json');
+  var auth = require('./configs/auth_dev.json'); // or remove ./ for absolute path ^_^
+}
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
@@ -11,15 +21,10 @@ var bot = new Discordbot({
   password: auth.password,
   autorun: true
 });
-
 var startTime = Math.round(new Date() / 1000);;
 var personalRoom = 133337987520921600;
-process.argv.forEach(function(val, index, array) {
-  //console.log(index + ': ' + val);
-  if (val === "development") MODE = "development";
-});
-if (MODE === "production") var config = require('./configs/config.json');
-else var config = require('./configs/config_dev.json');
+
+
 var database = new(require("./database.js"))();
 var away = [];
 config.deletereddit = config.deletereddit || false;
@@ -30,13 +35,15 @@ bot.on("err", function(error) {
 });
 
 bot.on("ready", function(rawEvent) {
-  bot.editUserInfo({
+  // console.log(config);
+  /*bot.editUserInfo({
     password: auth.password, //Required
     username: config.username //Optional
-  })
+  })*/
   console.log("Connected!");
   console.log("Logged in as: ");
   console.log(bot.username + " - (" + bot.id + ")");
+  console.log("Listento: " + config.listenTo);
   bot.setPresence({
     idle_since: null,
     game: config.defaultStatus
@@ -400,6 +407,7 @@ function canUserRun(command, uid, channelID) {
 
   if (!commands[command]) {
     if (database.channels.indexOf(channelID) == -1) {
+      console.log("User can't run the previous command because I am not listening in this channel.");
       return false;
     }
     if (database.messages[command]) {
@@ -408,6 +416,7 @@ function canUserRun(command, uid, channelID) {
     if (database.images[command]) {
       return true;
     }
+    console.log("User can't run the previous command because I don't know it");
     return false;
   }
 
@@ -421,11 +430,13 @@ function canUserRun(command, uid, channelID) {
 
   if (commands[command].permission.onlyMonitored) {
     if (database.channels.indexOf(channelID) == -1) {
+      console.log("User can't run the previous command because I am not listening in this channel.");
       return false;
     }
   }
 
   if (!commands[command].permission.uid && !commands[command].permission.group) {
+
     return true;
   }
 
