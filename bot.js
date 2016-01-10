@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.2.0 - Module branch";
+var VERSION = "1.2.2 - Module branch";
 var MODE = "production";
 var auth = require('./configs/auth.json'); // or remove ./ for absolute path ^_^
 var Discordbot = require('discord.io');
@@ -231,14 +231,17 @@ var commands = {
   group: require("./modules/module_group.js"),
   //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
   greet: require("./modules/module_greetings.js"),
+  message: require("./modules/module_message.js"),
+  nightcore: require("./modules/module_nightcore.js"),
   info: {
     permission: {
       uid: [config.masterID],
+      group: ["dev"],
       onlyMonitored: true
     },
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
-      sendMessages(e, ["My status is:\nMy current version is: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + "` mode right now.\nMy current uptime in seconds is: `" + t + "`seconds\nZephy is the best developer \u2764\n*whispers* My nsfw mode is right now set to: `" + config.redditAdultMode + "`"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nZephy is the best developer \u2764\n*whispers* My nsfw mode is right now set to: **" + config.redditAdultMode + "**\nListen to my theme song please https://www.youtube.com/watch?v=Vw32WZJSMU4 :3"]);
     }
   },
   debug: {
