@@ -139,6 +139,10 @@ var commands = {
     lastTime: 0,
     action: function(args, e) {
       if (e.db.images[args[0].toLowerCase()]) {
+        e.bot.deleteMessage({
+          channel: e.channelID,
+          messageID: e.rawEvent.d.id
+        });
         bot.uploadFile({
           to: e.channelID,
           file: fs.createReadStream(database.images[args[0].toLowerCase()])

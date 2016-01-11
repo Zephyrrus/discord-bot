@@ -27,11 +27,11 @@ function database() {
              }
         });
 
-        fs.writeFile("db/images.json", JSON.stringify(this.images), function(error) {
+        /*fs.writeFile("db/images.json", JSON.stringify(this.images), function(error) {
              if (error) {
                console.error("write error:  " + error.message);
              }
-        });
+        });*/
 
         fs.writeFile("db/nightcores.json", JSON.stringify(this.nightcores), function(error) {
              if (error) {
