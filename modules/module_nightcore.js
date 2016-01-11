@@ -17,6 +17,7 @@ module.exports = {
             to: e.channelID,
             message: "<@" + e.userID + "> I can't learn this song, it's id seems to be invalid."
         });
+        return;
       }
       for(var i = 0; i < e.db.nightcores['id'].length; i++) {
           if(e.db.nightcores['id'][i] == youtubeID) {
@@ -53,6 +54,7 @@ module.exports = {
                 to: e.channelID,
                 message: "<@" + e.userID + "> I forgot that video."
               });
+              e.db.saveConfig();
               return;
           }
       }
@@ -61,7 +63,19 @@ module.exports = {
         to: e.channelID,
         message: "<@" + e.userID + "> I don't know this video."
       });
+
       return;
+    }else if(args[0] === "count"){
+      e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> I know **" + e.db.nightcores['id'].length + "** nightcores in total"
+      });
+
+    }else if(args[0] === "list"){
+      e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> Listing every nightcore I know [Count: **" + e.db.nightcores['id'].length + "**]```\n" +e.db.nightcores['id'] + "```"
+      });
     }
     else{
         var youtubeID = e.db.nightcores['id'][randomInt(0, e.db.nightcores['id'].length)];

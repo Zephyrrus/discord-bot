@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.2.4 - Module branch";
+var VERSION = "1.2.5 ~ Module branch";
 var MODE = "production";
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
@@ -80,16 +80,6 @@ var commands = {
     }
   },
   reddit: require("./modules/module_reddit.js"),
-  kemo: {
-    permission: {
-      onlyMonitored: true
-    },
-    cooldown: 10000,
-    lastTime: 0,
-    action: function(args, e) {
-      doReddit("kemonomimi", e);
-    }
-  },
   setstatus: {
     permission: {
       uid: [config.masterID],
@@ -165,7 +155,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nkemo - posts a random image with kemonomimi\nid - returns the id of the channel\njson - returns a formated json of your message\nmyid - returns your id\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly```"]);
+      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
     }
   },
   come: {
@@ -248,7 +238,7 @@ var commands = {
     },
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nZephy is the best developer \u2764\n*whispers* My nsfw mode is right now set to: **" + config.redditAdultMode + "**\nListen to my theme song please https://www.youtube.com/watch?v=Vw32WZJSMU4 :3"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"**\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode is right now set to: **" + !config.redditAdultMode + "**\nListen to my theme song please https://www.youtube.com/watch?v=Vw32WZJSMU4 :3"]);
     }
   },
   debug: {
