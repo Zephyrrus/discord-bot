@@ -155,7 +155,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
+      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\ngag - gets a random post from 9GAG\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
     }
   },
   come: {
