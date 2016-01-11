@@ -8,10 +8,16 @@ module.exports = {
   },
   action: function(args, e) {
     var youtubeID = args[1];
-    var regex = new RegExp("^[a-zA-Z0-9\-]+$");
+    var regex = new RegExp("^[a-zA-Z0-9\-\_]+$");
     console.log(args[0]);
     if(args[0] === "add"){
       var alreadyExists = false;
+      if(args[1] == undefined || args[1].length != 11){
+        e.bot.sendMessage({
+            to: e.channelID,
+            message: "<@" + e.userID + "> I can't learn this song, it's id seems to be invalid."
+        });
+      }
       for(var i = 0; i < e.db.nightcores['id'].length; i++) {
           if(e.db.nightcores['id'][i] == youtubeID) {
               alreadyExists = true;

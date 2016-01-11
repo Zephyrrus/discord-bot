@@ -329,6 +329,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     return;
   }
 
+console.log(message.substring(config.listenTo.length + 3).substring(message.indexOf(" ")));
   if (parsed.command == "eval") {
     if (userID != config.masterID) {
       bot.sendMessage({
@@ -340,7 +341,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     try {
       bot.sendMessage({
         to: channelID,
-        message: "```" + eval(message.substring(config.listenTo.length + 3).substring(message.indexOf(" "))) + "```"
+        message: "```" + eval(parsed.args.join(" ")) + "```"
       });
     } catch (e) {
       bot.sendMessage({
