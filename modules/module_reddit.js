@@ -68,9 +68,9 @@ function doReddit(args, e) {
     });
 
     if (response != undefined) {
+      var responseReddit = response;
       var link = response.link.toString();
       link = link.replace(/^https:\/\//i, 'http://');
-      var responseReddit = response;
       var filename = "./modules/cache/" + link.split("/").pop();
       var file = fs.createWriteStream(filename);
       var request = http.get(link.toString(), function(response) {
