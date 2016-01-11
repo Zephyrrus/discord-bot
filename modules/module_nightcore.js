@@ -3,9 +3,11 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
-  group: ["trusted"],
+
   permission: {
-    onlyMonitored: true
+    onlyMonitored: true,
+    group: ["dev", "trusted", "waifu"],
+    uid: [config.masterID]
   },
   action: function(args, e) {
     var youtubeID = args[1];
