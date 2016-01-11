@@ -6,8 +6,7 @@ module.exports = {
 
   permission: {
     onlyMonitored: true,
-    group: ["dev", "trusted", "waifu"],
-    uid: [config.masterID]
+    group: ["dev", "trusted", "root"]
   },
   action: function(args, e) {
     var youtubeID = args[1];
