@@ -32,6 +32,7 @@ module.exports = {
         e.db.saveConfig();
         e.bot.sendMessage({
             to: e.channelID,
+            //typing: true,
             message: "<@" + e.userID + "> Thanks for teaching me this song `[" + youtubeID + "]`"
         });
       }else{

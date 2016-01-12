@@ -24,7 +24,7 @@ function doKitten(args, e){
             if (exists) {
               e.bot.sendMessage({
                 to: e.channelID,
-                message: "**Nyaa~** \u2764",
+                message: "<@" + e.userID + "> **Nyaa~** \u2764",
               }, function(response) {
                 e.bot.uploadFile({
                   to: e.channelID,

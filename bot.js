@@ -21,7 +21,7 @@ var bot = new Discordbot({
   password: auth.password,
   autorun: true
 });
-var startTime = Math.round(new Date() / 1000);;
+var startTime = Math.round(new Date() / 1000);
 var personalRoom = 133337987520921600;
 
 
@@ -63,7 +63,20 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["<@" + e.userID + "> Pong"]);
+      var delayStart = new Date().getTime();
+      e.bot.sendMessage({
+        to: e.channelID,
+        message: "<@" + e.userID + "> Pong"
+      }, function(response) {
+        var delay = Math.round((new Date()).getTime() - delayStart);
+        bot.editMessage({
+          channel: response.channel_id,
+          messageID: response.id,
+          message: "<@" + e.userID + "> Pong\nNetwork delay: **" + delay + "** ms"
+        }, function(response) { //CB Optional
+          //console.log(response);
+        });
+      });
       console.log("Ponged <@" + e.userID + ">");
     }
   },
@@ -403,7 +416,7 @@ function parse(string) {
 function canUserRun(command, uid, channelID) {
 
   if (!commands[command]) {
-    if (database.channels.indexOf(channelID) == -1) {
+    if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
       console.log("User can't run the previous command because I am not listening in this channel.");
       return false;
     }
@@ -426,14 +439,13 @@ function canUserRun(command, uid, channelID) {
   }
 
   if (commands[command].permission.onlyMonitored) {
-    if (database.channels.indexOf(channelID) == -1) {
+    if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
       console.log("User can't run the previous command because I am not listening in this channel.");
       return false;
     }
   }
 
   if (!commands[command].permission.uid && !commands[command].permission.group) {
-
     return true;
   }
 
