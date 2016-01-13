@@ -249,7 +249,7 @@ var commands = {
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, ["My waifu is <@108272892197806080> \u2764"]);
+      sendMessages(e, ["My waifu is Benolot \u2764"]);
       var random = Math.floor(Math.random() * (50 - 1) + 1);;
       if (random % 5==0){
         sendMessages(e,["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
