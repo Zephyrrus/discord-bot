@@ -244,7 +244,7 @@ var commands = {
   },
   waifu: {
     permission: {
-      uid: [config.masterID],
+      //uid: [config.masterID],
       //group: ["waifu"],
       onlyMonitored: true
     },
