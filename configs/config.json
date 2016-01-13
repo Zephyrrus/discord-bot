@@ -4,5 +4,6 @@
 	"username": "Rin",
 	"listenTo": "rin",
 	"redditAdultMode": false,
-	"defaultStatus": "Being a lil cat <3"
+	"defaultStatus": "Being a lil cat <3",
+	"globalcooldown": 2000
 }

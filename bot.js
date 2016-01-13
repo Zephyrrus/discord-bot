@@ -242,6 +242,22 @@ var commands = {
       sendMessages(e, ["<@" + e.userID + "> \u2764"]);
     }
   },
+  waifu: {
+    permission: {
+      uid: [config.masterID],
+      //group: ["waifu"],
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      sendMessages(e, ["My waifu is <@108272892197806080> \u2764"]);
+      var random = Math.floor(Math.random() * (50 - 1) + 1);;
+      if (random % 5==0){
+        sendMessages(e,["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
+      }
+    }
+
+
+  },
     //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
   group: require("./modules/module_group.js"),
   greet: require("./modules/module_greetings.js"),
