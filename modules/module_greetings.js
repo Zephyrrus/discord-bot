@@ -3,6 +3,7 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 500,
+  description: "greet <greeting> - Let the bot greet you. Only for lonely people",
   permission: {
     onlyMonitored: true
   },
@@ -11,6 +12,7 @@ module.exports = {
       channel: e.channelID,
       messageID: e.rawEvent.d.id
     });
+    if(args[0])
     if (args[0].toLowerCase() == "morning") {
       e.bot.sendMessage({
         to: e.channelID,

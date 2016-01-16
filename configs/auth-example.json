@@ -1,8 +1,21 @@
 {
-  "email": "",
-  "password": "",
-  "reddit_key": "",
-  "reddit_secret": "",
-  "reddit_username": "",
-  "reddit_password": ""
+  "discord":{
+    "email": "",
+    "password": ""
+  },
+  "reddit":{
+    "apikey": "",
+    "appsecret": "",
+    "username": "",
+    "password": ""
+  },
+  "google":{
+    "apikey": ""
+  },
+  "animedb":{
+    "apikey": ""
+  },
+  "osu":{
+    "apikey": ""
+  }
 }

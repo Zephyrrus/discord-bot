@@ -1,17 +1,22 @@
 var Snoocore = require('snoocore');
-var auth = require('../configs/auth.json');
-var config = require('../configs/config.json')
+
+if (GLOBAL.MODE === "production") {
+  var auth = require('../configs/auth.json');
+}
+else {
+  var auth = require('../configs/auth_dev.json');
+}
 var fs = require('fs');
 var http = require('follow-redirects').http;
 var reddit = new Snoocore({
-  userAgent: 'rin discord.bot', // unique string identifying the app
+  userAgent: 'DiscordBot - Rin - Version 1.2.11', // unique string identifying the app
   throttle: 300,
   oauth: {
     type: 'script',
-    key: auth.reddit_key, // OAuth client key (provided at reddit app)
-    secret: auth.reddit_secret, // OAuth secret (provided at reddit app)
-    username: auth.reddit_username, // Reddit username used to make the reddit app
-    password: auth.reddit_password, // Reddit password for the username
+    key: auth.reddit.apikey, // OAuth client key (provided at reddit app)
+    secret: auth.reddit.appsecret, // OAuth secret (provided at reddit app)
+    username: auth.reddit.username, // Reddit username used to make the reddit app
+    password: auth.reddit.password, // Reddit password for the username
     // The OAuth scopes that we need to make the calls that we
     // want. The reddit documentation will specify which scope
     // is needed for evey call
@@ -57,11 +62,9 @@ function randomInt(low, high) {
   return Math.floor(Math.random() * (high - low) + low);
 }
 
-//TODO IMPLEMENT NSFW FILTERING/CHANNEL
-//TODO ANDSWER SOME COMMANDS IN PM e.userID as channelID
 function doReddit(args, e) {
   var arguments = args;
-  getSubreddit(arguments, config.redditAdultMode, function(response) {
+  getSubreddit(arguments, e.config.allowNSFW, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
       messageID: e.rawEvent.d.id
@@ -93,7 +96,7 @@ function doReddit(args, e) {
                   message: "Title: **" + responseReddit.title + "**",
                   //typing: true
                 });
-                if (config.deletereddit) fs.unlink(filename);
+                if (e.config.deletereddit) fs.unlink(filename);
               });
             });
           }
@@ -111,6 +114,7 @@ function doReddit(args, e) {
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
+  description: "reddit <subreddit> - posts a random image from that subreddit",
   permission: {
     onlyMonitored: true
   },
@@ -124,7 +128,7 @@ module.exports = {
     description: "Gets an image from reddit and posts it to the chat.",
     author: "Zephy",
     version: "1.0.0",
-    parentcommand: "reddit", // maybe we should add something like this, and every command listen below is like <botname> <parentcommand> <childcommand> <arguments>
+    parentcommand: "reddit",
     init: function(commandRegister) {
         commandRegister.add("get", "get <subreddit> - Posts an image from the specified subreddit", ["reddit.subreddit"], doReddit); // alias, description, permission name, function
         commandRegister.add("kemo", "kemo - Posts an image from the kemonomimi subreddit", ["reddit.kemonomimi"], doKemo);

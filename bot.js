@@ -1,6 +1,7 @@
 /*Variable area*/
-var VERSION = "1.2.7 ~ Module branch";
+var VERSION = "1.3.0 ~ Main branch";
 var MODE = "production";
+
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
 });
@@ -15,10 +16,10 @@ else {
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
-
+GLOBAL.MODE = MODE;
 var bot = new Discordbot({
-  email: auth.email,
-  password: auth.password,
+  email: auth.discord.email,
+  password: auth.discord.password,
   autorun: true
 });
 var startTime = Math.round(new Date() / 1000);
@@ -56,8 +57,8 @@ bot.on("ready", function(rawEvent) {
 
 var commands = {
   ping: {
+    description: "ping - the bot will reply with 'Pong!' and later with the delay between discord and the server",
     permission: {
-      uid: [config.masterID],
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
@@ -80,19 +81,6 @@ var commands = {
       console.log("Ponged <@" + e.userID + ">");
     }
   },
-  id: {
-    permission: {
-      uid: [config.masterID],
-      group: ["dev"],
-      onlyMonitored: true
-    },
-    cooldown: config.globalcooldown,
-    lastTime: 0,
-    action: function(args, e) {
-      sendMessages(e, ["The ID of this channel is `" + e.channelID + "`"]);
-    }
-  },
-  reddit: require("./modules/module_reddit.js"),
   setstatus: {
     permission: {
       uid: [config.masterID],
@@ -105,23 +93,47 @@ var commands = {
       });
     }
   },
-  myid: {
+  id: {
+    description:"id <myid/channel/server/@mention> - shows the id of the requested channel/user/etc ",
     permission: {
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, ["<@" + e.userID + ">: **Your ID**: `@" + e.userID + "`"]);
+      if(args[0])
+      if(args[0].toLowerCase() == "channel"){
+        sendMessages(e, ["The ID of this channel is `" + e.channelID + "`"]);
+      }else if(args[0].toLowerCase() == "server"){
+          e.bot.sendMessage({
+            to: e.channelID,
+            message: "Server ID => `" + e.bot.serverFromChannel(e.channelID) + "`"
+          });
+      }else if(args[0].indexOf("<@") > -1 && args[0].indexOf(">") > -1){
+        e.bot.sendMessage({
+            to: e.channelID,
+            message: args[0] + "`" + args[0].substring(2,args[0].length-1) + "`"
+          });
+      }else{
+        sendMessages(e, ["<@" + e.userID + ">: **Your ID**: `@" + e.userID + "`"]);
+      }
     }
   },
   echo: {
+    description: "echo - the bot will repeat your message.",
     permission: {
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      //ADD CHECK FOR -H ARGS WHICH REMOVES THE FROM THINGIE
-      sendMessages(e, [args.join(" ") + " [<@" + e.userID + ">]"]);
+      if(!args[0]){
+        return;
+      }
+      if(args[0].toLowerCase() == "-h"){
+        args.splice(args[0], 1);
+        sendMessages(e, [args.join(" ")]);
+      }else{
+        sendMessages(e, [args.join(" ") + " [<@" + e.userID + ">]"]);
+      }
       e.bot.deleteMessage({
         channel: e.channelID,
         messageID: e.rawEvent.d.id
@@ -129,6 +141,7 @@ var commands = {
     }
   },
   bat: {
+    description: "bat - how to run a bat file if you don't know",
     permission: {
       onlyMonitored: true
     },
@@ -145,12 +158,16 @@ var commands = {
     }
   },
   emote: {
+    description: "emote <argument> - posts an emote",
     permission: {
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
+      if(!args[0]){
+        return;
+      }
       if (e.db.images[args[0].toLowerCase()]) {
         e.bot.deleteMessage({
           channel: e.channelID,
@@ -166,16 +183,61 @@ var commands = {
     }
   },
   help: {
+    description: "help - shows this silly",
     permission: {
       onlyMonitored: true
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\n9gag - gets a random post from 9GAG\nkitten <me> -  you know what this does ^_^\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
-    }
+      //sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\n9gag - gets a random post from 9GAG\nkitten <me> -  you know what this does ^_^\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
+      var userInGroups = [];
+      		for(var grp in e.db.groups){
+      			if(e.db.groups[grp].indexOf(e.userID) > -1){
+      				userInGroups.push(grp);
+      			}
+
+      		}
+      		if(userInGroups.length == 0)
+      			userInGroups.push("");
+      		var queryResult = [];
+      		for(var cmd in commands) {
+            if(commands[cmd])
+      			if(commands[cmd].permission.group != undefined){
+      				if(commands[cmd].permission.group.indexOf(userInGroups[0]) > -1){
+      					if(commands[cmd].permission.uid == undefined){
+      						queryResult.push(cmd);
+      						//console.log(cmd);
+      					}
+      				}
+      			}else{
+      				if(commands[cmd].permission.uid == undefined){
+      					queryResult.push(cmd);
+      				}
+      			}
+            else console.log("THIS COMMAND IS BEING NASTY: " + cmd);
+      		}
+      		//console.log(queryResult);
+      		queryResult = queryResult.sort();
+      		var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```";
+      		for(var cmd in queryResult){
+      			console.log(queryResult[cmd]);
+      			if(commands[queryResult[cmd]].description != undefined){
+      				helpMessage += commands[queryResult[cmd]].description + "\n"
+      			}else{
+      				helpMessage += queryResult[cmd] + " - No description\n"
+      			}
+      		}
+
+            sendMessages(e, [helpMessage +
+
+      	  "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."]);
+          }
+
+
   },
   come: {
+    description: "come - starts listening to the current channel and will answer commands",
     permission: {
       group: ["dev"],
       onlyMonitored: false
@@ -202,10 +264,11 @@ var commands = {
       }
 
 
-      e.db.saveConfig();
+      e.db.saveConfig("channels");
     }
   },
   leave: {
+    description: "leave - stops listening to the current channel",
     permission: {
       group: ["dev"],
       onlyMonitored: true
@@ -215,7 +278,7 @@ var commands = {
         return;
       }
       e.db.channels.splice(e.db.channels.indexOf(e.channelID), 1);
-      e.db.saveConfig();
+      e.db.saveConfig("channel");
       e.bot.sendMessage({
         to: e.channelID,
         message: "I will leave this channel now ;_;"
@@ -223,6 +286,7 @@ var commands = {
     }
   },
   json: {
+    description: "json - shows a formated json of the response received from the server",
     permission: {
       uid: [config.masterID],
       group: ["dev"],
@@ -243,9 +307,8 @@ var commands = {
     }
   },
   waifu: {
+    description: "waifu - who is the bot's waifu",
     permission: {
-      //uid: [config.masterID],
-      //group: ["waifu"],
       onlyMonitored: true
     },
     action: function(args, e) {
@@ -255,9 +318,8 @@ var commands = {
         sendMessages(e,["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
       }
     }
-
-
   },
+  dance:require('./modules/module_personality.js'),
     //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
   group: require("./modules/module_group.js"),
   greet: require("./modules/module_greetings.js"),
@@ -265,7 +327,13 @@ var commands = {
   nightcore: require("./modules/module_nightcore.js"),
   '9gag': require("./modules/module_9gag.js"),
   kitten: require("./modules/module_kitten.js"),
+  anime: require("./modules/module_animedb.js"),
+  reddit: require("./modules/module_reddit.js"),
+  osu: require("./modules/module_osu.js"),
+  /*encode: ("./modules/module_hashing.js").encode,
+  decode: ("./modules/module_hashing.js").decode,*/
   info: {
+    description: "info - shows information about the current status of the bot.",
     permission: {
       uid: [config.masterID],
       group: ["dev"],
@@ -273,7 +341,7 @@ var commands = {
     },
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode is right now set to: **" + !config.redditAdultMode + "**\nListen to my theme song please https://www.youtube.com/watch?v=Vw32WZJSMU4 :3"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
     }
   },
   debug: {
@@ -294,7 +362,7 @@ bot.on("presence", function(user, userID, status, rawEvent) {
 });
 
 bot.on("debug", function(rawEvent) {
-  /*console.log(rawEvent)*/ //Logs every event
+  //console.log(rawEvent) //Logs every event
 });
 
 bot.on("disconnected", function() {
@@ -342,7 +410,7 @@ function download(url, dest, cb) {
 
 function processMessage(user, userID, channelID, message, rawEvent) {
   console.log("-----------");
-  console.log("Got message: '" + message.replace(/[^A-Za-z0-9 ]/, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/, '?') + ")");
+  console.log("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
 
   if (userID == bot.id) {
     return;
@@ -396,13 +464,16 @@ console.log(message.substring(config.listenTo.length + 3).substring(message.inde
         return;
       }
     }
+    if(!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
     commands[parsed.command].action(parsed.args, {
       "user": user,
       "userID": userID,
       "channelID": channelID,
       "rawEvent": rawEvent,
       "bot": bot,
-      "db": database
+      "db": database,
+      "config": config//,
+      //"auth": auth
     });
     commands[parsed.command].lastTime = (new Date()).getTime();
   }

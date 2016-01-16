@@ -3,6 +3,7 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
+  description: "message <arguments> - I have no idea what this should do, maybe one day :3",
   permission: {
     group: ["dev", "messages"],
     onlyMonitored: true
@@ -15,7 +16,7 @@ module.exports = {
         to: e.channelID,
         message: "<@" + e.userID + "> added `!" + args[1] + "`: " + msg
       });
-      e.db.saveConfig();
+      e.db.saveConfig("messages");
     } else if (args[0] == "remove") {
       if (!e.db.messages[args[1]]) {
         e.bot.sendMessage({
@@ -29,7 +30,7 @@ module.exports = {
         to: e.channelID,
         message: "<@" + e.userID + "> removed `!" + args[1] + "`"
       });
-      e.db.saveConfig();
+      e.db.saveConfig("messages");
     } else if (args[0] == "list") {
       var str = "**Message list:**\n\n```\nlisting is disabled for now\n```";
       // var g = Object.keys(e.db.messages)

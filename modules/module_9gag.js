@@ -120,6 +120,7 @@ module.exports = {
   permission: {
     onlyMonitored: true
   },
+  description: "9gag - gets a random post from 9gag",
   action: function(args, e) {
     if (args[0] == "hot") {
       nineGAGScraper("hot");

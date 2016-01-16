@@ -42,7 +42,7 @@ module.exports = {
                 message: "<@" + e.userID + "> user " + args[2] + " (" + user + ")  added to `" + group + "`"
             });
 
-            e.db.saveConfig();
+            e.db.saveConfig("groups");
         } else if(args[0] == "kick") {
             var group = args[1];
             var user = uidFromMention.exec(args[2])[1];
@@ -70,7 +70,7 @@ module.exports = {
                 message: "<@" + e.userID + "> user " + args[2] + " (" + user + ")  removed from `" + group + "`"
             });
 
-            e.db.saveConfig();
+            e.db.saveConfig("groups");
         } else if(args[0] == "debug") {
             console.log(e.db.groups);
         } else if(args[0] == "list") {

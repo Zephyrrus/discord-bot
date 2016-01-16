@@ -3,7 +3,7 @@
 	"masterID": "132166948359241728",
 	"username": "Rin",
 	"listenTo": "rin",
-	"redditAdultMode": false,
+	"allowNSFW": false,
 	"defaultStatus": "Being a lil cat <3",
 	"globalcooldown": 2000
 }
