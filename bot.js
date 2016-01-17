@@ -341,6 +341,11 @@ var commands = {
     },
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
+      if(args[0].toLowerCase() == "zombie"){
+        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
+        return;
+      }
+
       sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
     }
   },
@@ -421,8 +426,6 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     //console.log("Not a command");
     return;
   }
-
-console.log(message.substring(config.listenTo.length + 3).substring(message.indexOf(" ")));
   if (parsed.command == "eval") {
     if (userID != config.masterID) {
       bot.sendMessage({
