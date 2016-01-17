@@ -125,7 +125,7 @@ module.exports = {
       var osuObject = e.db.beatmaps['maps'][randomInt(0, e.db.beatmaps['maps'].length)];
       e.bot.sendMessage({
         to: e.channelID,
-        message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\nI found something: \nTitle: **" + osuObject.artist + " - " + osuObject.title + "**\nLink: https://osu.ppy.sh/s/" + osuObject.beatmap_id
+        message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\nI found something: \nTitle: **" + osuObject.artist + " - " + osuObject.title + "**\nLink: https://osu.ppy.sh/s/" + osuObject.id
       });
     }
   }
