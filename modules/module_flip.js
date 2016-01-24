@@ -2,6 +2,7 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 500,
+  category: "misc",
   description:"flip <value 1|value 2|ect...> - Let the bot choose a random value",
   permission: {
     onlyMonitored: true

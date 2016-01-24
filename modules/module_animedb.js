@@ -2,6 +2,7 @@ var fs = require('fs');
 var http = require('follow-redirects').http;
 
 module.exports = {
+  category: "anime",
   description: "anime <anime> - Finds information about the anime",
   lastTime: 0,
   cooldown: 5000,

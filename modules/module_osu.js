@@ -4,14 +4,14 @@ var http = require('follow-redirects').https;
 
 if (GLOBAL.MODE === "production") {
   var auth = require('../configs/auth.json');
-}
-else {
+} else {
   var auth = require('../configs/auth_dev.json');
 }
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
-  description: "osu - Dispenses a random osu! beatmap from the list\nosu add <beatmap_id> - Adds an osu! beatmap to the list\nosu list - Lists all beatmaps currently added\nosu count - Counts all osu! beatmaps currently in the database\nosu random - Gets a random Osu! beatmap from the webpage.",
+  category: "osu",
+  description: ["osu - Dispenses a random osu! beatmap from the list", "osu add <beatmap_id> - Adds an osu! beatmap to the list", "osu list - Lists all beatmaps currently added", "osu count - Counts all osu! beatmaps currently in the database", "osu random - Gets a random Osu! beatmap from the webpage."],
   permission: {
     onlyMonitored: true,
     group: ["dev", "trusted", "root"]
@@ -38,11 +38,15 @@ module.exports = {
         if (!(alreadyExists > -1)) {
           e.bot.sendMessage({
             to: e.channelID,
-            message: "<@" + e.userID + "> I'm looking up that osu! beatmap ID if it's correct, please wait a few seconds!\n"//+ID: `"+youtubeID+"`"
-          },function(response) {
+            message: "<@" + e.userID + "> I'm looking up that osu! beatmap ID if it's correct, please wait a few seconds!\n" //+ID: `"+youtubeID+"`"
+          }, function(response) {
             getBeatmap(osuID, function(resp) {
               if (resp != undefined) {
-                e.db.beatmaps['maps'].push({"id": resp.beatmap_id, "artist": resp.artist, "title": resp.title});
+                e.db.beatmaps['maps'].push({
+                  "id": resp.beatmap_id,
+                  "artist": resp.artist,
+                  "title": resp.title
+                });
                 e.bot.editMessage({
                   channel: response.channel_id,
                   messageID: response.id,
@@ -106,22 +110,22 @@ module.exports = {
         to: e.userID,
         message: "<@" + e.userID + "> Listing every Osu! beatmap I know [Count: **" + e.db.beatmaps['maps'].length + "**]```\n" + result + "```"
       });
-    } else if(args[0] === "random"){
+    } else if (args[0] === "random") {
       e.bot.sendMessage({
         to: e.channelID,
-        message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\n"//+ID: `"+youtubeID+"`"
+        message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\n" //+ID: `"+youtubeID+"`"
       }, function(response) {
         getRandomOsu(function(resp) {
           if (resp != undefined) {
             e.bot.editMessage({
               channel: response.channel_id,
               messageID: response.id,
-              message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\nI found something: \nTitle: **" + resp.artist + " - " + resp.title + "**\nLink: https://osu.ppy.sh/s/" + resp.beatmap_id//+ID: `"+youtubeID+"`"
+              message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\nI found something: \nTitle: **" + resp.artist + " - " + resp.title + "**\nLink: https://osu.ppy.sh/s/" + resp.beatmap_id //+ID: `"+youtubeID+"`"
             });
           }
         });
       });
-    }else {
+    } else {
       var osuObject = e.db.beatmaps['maps'][randomInt(0, e.db.beatmaps['maps'].length)];
       e.bot.sendMessage({
         to: e.channelID,
@@ -135,51 +139,59 @@ function randomInt(low, high) {
   return Math.floor(Math.random() * (high - low) + low);
 }
 
-function getBeatmap(args, callback){
+function getBeatmap(args, callback) {
   var results = [];
   var url = "https://osu.ppy.sh/api/get_beatmaps?k=" + auth.osu.apikey + "&s=" + args;
-  http.get(url, function(res){
+  http.get(url, function(res) {
     var body = '';
 
-    res.on('data', function(chunk){
-        body += chunk;
+    res.on('data', function(chunk) {
+      body += chunk;
     });
-    res.on('end', function(){
-        var response = JSON.parse(body);
-        if(response[0]){
-          return callback({"beatmap_id": response[0].beatmapset_id, "artist": response[0].artist, "title": response[0].title})
-        }
-        return callback(undefined);
+    res.on('end', function() {
+      var response = JSON.parse(body);
+      if (response[0]) {
+        return callback({
+          "beatmap_id": response[0].beatmapset_id,
+          "artist": response[0].artist,
+          "title": response[0].title
+        })
+      }
+      return callback(undefined);
     });
-}).on('error', function(e){
-      console.log("[Osu! Module] Got an error: ", e);
-});
+  }).on('error', function(e) {
+    console.log("[Osu! Module] Got an error: ", e);
+  });
 
 
 
 }
 
-function getRandomOsu(callback){
+function getRandomOsu(callback) {
   var results = [];
   var url = "https://osu.ppy.sh/api/get_beatmaps?k=" + auth.osu.apikey + "&m=0&since=2016-01-01";
-  http.get(url, function(res){
+  http.get(url, function(res) {
     var body = '';
 
-    res.on('data', function(chunk){
-        body += chunk;
+    res.on('data', function(chunk) {
+      body += chunk;
     });
-    res.on('end', function(){
-        var response = JSON.parse(body);
-        if(response){
-          for(var beatmaps of response){
-              results.push({"beatmap_id": beatmaps.beatmapset_id, "artist": beatmaps.artist, "title": beatmaps.title})
-          }
+    res.on('end', function() {
+      var response = JSON.parse(body);
+      if (response) {
+        for (var beatmaps of response) {
+          results.push({
+            "beatmap_id": beatmaps.beatmapset_id,
+            "artist": beatmaps.artist,
+            "title": beatmaps.title
+          })
         }
-        return callback(results[randomInt(0, results.length)]);
+      }
+      return callback(results[randomInt(0, results.length)]);
     });
-}).on('error', function(e){
-      console.log("[Osu! Module] Got an error: ", e);
-});
+  }).on('error', function(e) {
+    console.log("[Osu! Module] Got an error: ", e);
+  });
 
 
 }

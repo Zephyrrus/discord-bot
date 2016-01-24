@@ -47,6 +47,7 @@ function doKitten(args, e){
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
+  category: "entertainment",
   description: "kitten - your daily dose of random kittens",
   permission: {
     onlyMonitored: true

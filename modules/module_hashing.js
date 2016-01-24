@@ -2,6 +2,7 @@ module.exports = {
   decode: {
     lastTime: 0,
     cooldown: 500,
+    category: "misc",
     description: "decode <base64> <text> -  Decode from something to normal text",
     permission: {
       onlyMonitored: true
@@ -24,6 +25,7 @@ module.exports = {
   encode: {
     lastTime: 0,
     cooldown: 500,
+    category: "misc",
     description: "encode <base64> <text> - Encode some text",
     permission: {
       onlyMonitored: true

@@ -4,7 +4,8 @@ var youtubeModule = require("./module_youtube.js");
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
-  description: "nightcore - Dispenses a random nightcore from the database\nnightcore add <youtubeID> - Adds a nightcore to the database\nnightcore list - Lists all nightcores currently added\nnightcore count - Counts all nightcores currently in the database",
+  category: "nightcore",
+  description: ["nightcore - Dispenses a random nightcore from the database", "nightcore add <youtubeID> - Adds a nightcore to the database", "nightcore list - Lists all nightcores currently added", "nightcore count - Counts all nightcores currently in the database"],
   permission: {
     onlyMonitored: true,
     group: ["dev", "trusted", "root"]

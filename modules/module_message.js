@@ -4,6 +4,7 @@ module.exports = {
   lastTime: 0,
   cooldown: 5000,
   description: "message <arguments> - I have no idea what this should do, maybe one day :3",
+  category: "personality",
   permission: {
     group: ["dev", "messages"],
     onlyMonitored: true

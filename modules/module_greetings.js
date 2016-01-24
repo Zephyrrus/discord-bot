@@ -3,6 +3,7 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 500,
+  category: "personality",
   description: "greet <greeting> - Let the bot greet you. Only for lonely people",
   permission: {
     onlyMonitored: true

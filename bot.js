@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.3.2 ~ Main branch";
+var VERSION = "1.3.6 ~ Main branch";
 var MODE = "production";
 
 process.argv.forEach(function(val, index, array) {
@@ -17,6 +17,7 @@ if (MODE === "production") {
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
+var logger = require("winston");
 GLOBAL.MODE = MODE;
 var bot = new Discordbot({
   email: auth.discord.email,
@@ -33,27 +34,38 @@ config.deletereddit = config.deletereddit || false;
 /*----------------------------------------------*/
 /*Event area*/
 bot.on("err", function(error) {
-  console.log(error)
+  logger.error(error)
 });
 
 bot.on("ready", function(rawEvent) {
   // console.log(config);
+  //load loger
+  logger.remove(logger.transports.Console);
+  logger.add(logger.transports.Console, {
+    colorize: true
+  });
+  logger.level = 'debug';
+  //load bot
   if (MODE == "development") {
     bot.editUserInfo({
       password: auth.discord.password, //Required
       username: config.username //Optional
     });
+    logger.add(logger.transports.File, {
+      level: 'debug',
+      filename: "log.txt"
+    });
   }
-  console.log("Connected!");
-  console.log("Logged in as: ");
-  console.log(bot.username + " - (" + bot.id + ")");
-  console.log("Listento: " + config.listenTo);
+  logger.info("Connected!");
+  logger.info("Logged in as: ");
+  logger.info(bot.username + " - (" + bot.id + ")");
+  logger.info("Listento: " + config.listenTo);
   bot.setPresence({
     idle_since: null,
     game: config.defaultStatus
   });
-  console.log("Version: " + VERSION);
-  console.log("Set status!");
+  logger.info("Version: " + VERSION);
+  logger.info("Set status!");
 });
 
 /*----------------------------------------------*/
@@ -82,7 +94,7 @@ var commands = {
           //console.log(response);
         });
       });
-      console.log("Ponged <@" + e.userID + ">");
+      logger.debug("Ponged <@" + e.userID + ">");
     }
   },
   setstatus: {
@@ -211,33 +223,60 @@ var commands = {
       }
       if (userInGroups.length == 0)
         userInGroups.push("");
-      var queryResult = [];
+
+      function pushCommand(array, cmd) {
+        //logger.debug(cmd + " - " + commands[cmd].category);
+        if (commands[cmd].category != undefined) {
+          array[commands[cmd].category] = array[commands[cmd].category] || [];
+          array[commands[cmd].category].push(cmd);
+        } else {
+          array['uncategorized'] = array['uncategorized'] || [];
+          array['uncategorized'].push(cmd);
+        }
+      }
+      /* COMMANDS ADDING TO THE OBJECT */
+      var queryResult = {};
       for (var cmd in commands) {
         if (commands[cmd])
           if (commands[cmd].permission.group != undefined) {
             if (commands[cmd].permission.group.indexOf(userInGroups[0]) > -1) {
               if (commands[cmd].permission.uid == undefined) {
-                queryResult.push(cmd);
+                pushCommand(queryResult, cmd);
               }
             }
           } else {
-            if (commands[cmd].permission.uid == undefined) {
-              queryResult.push(cmd);
+            pushCommand(queryResult, cmd);
+          } else logger.error("Unknown error when registering the following command: " + cmd);
+      }
+
+      /* SORTING */
+      /* NO SORTING BECAUSE JS */
+
+      /* HELP MESSAGE GENERATING */
+      //queryResult = queryResult.sort();
+      var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```\n";
+      for (var category in queryResult) {
+        helpMessage += category.toString() + "\n";
+        for (var command in queryResult[category]) {
+          if (commands[queryResult[category][command]].description != undefined) {
+            if (commands[queryResult[category][command]].description instanceof Array) {
+              for (var i = 0; i < commands[queryResult[category][command]].description.length; i++) {
+                helpMessage += "\t" + commands[queryResult[category][command]].description[i] + "\n"
+              }
+            }else{
+              helpMessage += "\t" + commands[queryResult[category][command]].description + "\n"
             }
-          } else console.log("Unknown error when registering the following command: " + cmd);
-      }
-      //console.log(queryResult);
-      queryResult = queryResult.sort();
-      var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```";
-      for (var cmd in queryResult) {
-        console.log(queryResult[cmd]);
-        if (commands[queryResult[cmd]].description != undefined) {
-          helpMessage += commands[queryResult[cmd]].description + "\n"
-        } else {
-          helpMessage += queryResult[cmd] + " - No description\n"
+          } else {
+            if(queryResult[command] == undefined){
+              logger.error(command + " - " + queryResult[command] + " - " + category);
+            }
+            helpMessage += "\t" + queryResult[command] + " - No description\n"
+          }
         }
+        helpMessage += "\n";
       }
-      e.bot.sendMessage({
+
+      if(e.bot.serverFromChannel(e.channelID) != undefined) e.bot.sendMessage({
         to: e.channelID,
         message: "Please check your private messages for the commands."
       })
@@ -368,15 +407,6 @@ var commands = {
       });
     }
   },
-  debug: {
-    permission: {
-      uid: [config.masterID],
-      onlyMonitored: true
-    },
-    action: function(args, e) {
-      if (args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + '` mode right now.'])
-    }
-  },
   //modules
   dance: require('./modules/module_personality.js').dance,
   group: require("./modules/module_group.js"),
@@ -406,7 +436,7 @@ bot.on("debug", function(rawEvent) {
 });
 
 bot.on("disconnected", function() {
-  console.log("Bot disconnected");
+  logger.error("Bot disconnected");
   bot.connect(); //Auto reconnect
 });
 
@@ -449,8 +479,8 @@ function download(url, dest, cb) {
 };
 
 function processMessage(user, userID, channelID, message, rawEvent) {
-  console.log("-----------");
-  console.log("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
+  //logger.debug("-----------");
+  logger.debug("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
 
   if (userID == bot.id) {
     return;
@@ -484,7 +514,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
   }
 
   if (!canUserRun(parsed.command, userID, channelID)) {
-    console.log("User cant run this command");
+    logger.info("User " + userID + " cant run this command");
     return;
   }
 
@@ -510,19 +540,20 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       "rawEvent": rawEvent,
       "bot": bot,
       "db": database,
-      "config": config //,
+      "config": config, //,
+      "logger": logger
         //"auth": auth
     });
     commands[parsed.command].lastTime = (new Date()).getTime();
-  }else {
-        if(database.messages[parsed.command]) {
-            bot.sendMessage({
-                to: channelID,
-                message: database.messages[parsed.command]
-            });
-            return;
-        }
-      }
+  } else {
+    if (database.messages[parsed.command]) {
+      bot.sendMessage({
+        to: channelID,
+        message: database.messages[parsed.command]
+      });
+      return;
+    }
+  }
 }
 
 function parse(string) {
@@ -550,14 +581,14 @@ function canUserRun(command, uid, channelID) {
   if (database.bans[uid]) {
     bot.sendMessage({
       to: uid,
-      message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME."
+      message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message Zephy"
     });
 
     return false;
   }
   if (!commands[command]) {
     if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-      console.log("User can't run the previous command because I am not listening in this channel.");
+      logger.info("User can't run the previous command because I am not listening in this channel.");
       return false;
     }
     if (database.messages[command]) {
@@ -566,7 +597,7 @@ function canUserRun(command, uid, channelID) {
     if (database.images[command]) {
       return true;
     }
-    console.log("User can't run the previous command because I don't know it");
+    logger.info("User can't run the previous command because I don't know it");
     return false;
   }
 
@@ -581,7 +612,7 @@ function canUserRun(command, uid, channelID) {
 
   if (commands[command].permission.onlyMonitored) {
     if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-      console.log("User can't run the previous command because this command can be used only in channels what I monitor");
+      logger.info("User can't run the previous command because this command can be used only in channels what I monitor");
       return false;
     }
   }

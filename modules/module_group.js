@@ -7,8 +7,10 @@ module.exports = {
         group: ["root"],
         onlyMonitored: true
     },
+    category: "ranks",
+    description: ["group add <@mention> <group> - Adds the mentioned user to the group", "group remove <@mention> <group> - Removes the user from that group", "group list - lists every group"],
     action: function(args, e) {
-        if(args[0] == "let") {
+        if(args[0] == "add") {
             if(!uidFromMention.test(args[2])) {
                 e.bot.sendMessage({
                     to: e.channelID,
@@ -43,7 +45,7 @@ module.exports = {
             });
 
             e.db.saveConfig("groups");
-        } else if(args[0] == "kick") {
+        } else if(args[0] == "remove") {
             var group = args[1];
             var user = uidFromMention.exec(args[2])[1];
 
