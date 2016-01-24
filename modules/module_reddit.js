@@ -114,6 +114,7 @@ function doReddit(args, e) {
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
+  category: "entertainment",
   description: "reddit <subreddit> - posts a random image from that subreddit",
   permission: {
     onlyMonitored: true

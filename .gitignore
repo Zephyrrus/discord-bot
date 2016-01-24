@@ -9,3 +9,4 @@ config_dev.json
 configs/auth.json
 configs/config_dev.json
 configs/auth_dev.json
+modules/cache/

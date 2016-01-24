@@ -1,4 +1,5 @@
 module.exports = {
+  dance: {
   lastTime: 0,
   cooldown: 5000,
   description: "dance - what do you think that this command does ? duh",
@@ -11,4 +12,5 @@ module.exports = {
       message: "(/'-')/\n\u30FD('-'\u30FD)\n(/'-')/\n(/'-')/"
     });
   }
+}
 };

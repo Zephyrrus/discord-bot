@@ -1,18 +1,19 @@
 /*Variable area*/
-var VERSION = "1.3.0 ~ Main branch";
+var VERSION = "1.3.2 ~ Main branch";
 var MODE = "production";
 
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
 });
+
 if (MODE === "production") {
   var config = require('./configs/config.json');
   var auth = require('./configs/auth.json'); // or remove ./ for absolute path ^_^
-}
-else {
+} else {
   var config = require('./configs/config_dev.json');
   var auth = require('./configs/auth_dev.json'); // or remove ./ for absolute path ^_^
 }
+
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
@@ -24,7 +25,7 @@ var bot = new Discordbot({
 });
 var startTime = Math.round(new Date() / 1000);
 var personalRoom = 133337987520921600;
-
+var uidFromMention = /<@([0-9]+)>/;
 
 var database = new(require("./database.js"))();
 var away = [];
@@ -37,10 +38,12 @@ bot.on("err", function(error) {
 
 bot.on("ready", function(rawEvent) {
   // console.log(config);
-  /*bot.editUserInfo({
-    password: auth.password, //Required
-    username: config.username //Optional
-  })*/
+  if (MODE == "development") {
+    bot.editUserInfo({
+      password: auth.discord.password, //Required
+      username: config.username //Optional
+    });
+  }
   console.log("Connected!");
   console.log("Logged in as: ");
   console.log(bot.username + " - (" + bot.id + ")");
@@ -57,6 +60,7 @@ bot.on("ready", function(rawEvent) {
 
 var commands = {
   ping: {
+    category: "misc",
     description: "ping - the bot will reply with 'Pong!' and later with the delay between discord and the server",
     permission: {
       onlyMonitored: true
@@ -82,9 +86,11 @@ var commands = {
     }
   },
   setstatus: {
+    category: "management",
     permission: {
       uid: [config.masterID],
-      onlyMonitored: true
+      onlyMonitored: true,
+      group: ['dev', 'waifu'],
     },
     action: function(args, e) {
       e.bot.setPresence({
@@ -94,30 +100,32 @@ var commands = {
     }
   },
   id: {
-    description:"id <myid/channel/server/@mention> - shows the id of the requested channel/user/etc ",
+    category: "info",
+    description: "id <myid/channel/server/@mention> - shows the id of the requested channel/user/etc ",
     permission: {
       onlyMonitored: true
     },
     action: function(args, e) {
-      if(args[0])
-      if(args[0].toLowerCase() == "channel"){
-        sendMessages(e, ["The ID of this channel is `" + e.channelID + "`"]);
-      }else if(args[0].toLowerCase() == "server"){
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "Server ID => `" + e.bot.serverFromChannel(e.channelID) + "`"
-          });
-      }else if(args[0].indexOf("<@") > -1 && args[0].indexOf(">") > -1){
+      if (args[0])
+        if (args[0].toLowerCase() == "channel") {
+          sendMessages(e, ["The ID of this channel is `" + e.channelID + "`"]);
+        } else if (args[0].toLowerCase() == "server") {
         e.bot.sendMessage({
-            to: e.channelID,
-            message: args[0] + "`" + args[0].substring(2,args[0].length-1) + "`"
-          });
-      }else{
+          to: e.channelID,
+          message: "Server ID => `" + e.bot.serverFromChannel(e.channelID) + "`"
+        });
+      } else if (args[0].indexOf("<@") > -1 && args[0].indexOf(">") > -1) {
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: args[0] + "`" + args[0].substring(2, args[0].length - 1) + "`"
+        });
+      } else {
         sendMessages(e, ["<@" + e.userID + ">: **Your ID**: `@" + e.userID + "`"]);
       }
     }
   },
   echo: {
+    category: "misc",
     description: "echo - the bot will repeat your message.",
     permission: {
       onlyMonitored: true
@@ -125,13 +133,13 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      if(!args[0]){
+      if (!args[0]) {
         return;
       }
-      if(args[0].toLowerCase() == "-h"){
+      if (args[0].toLowerCase() == "-h") {
         args.splice(args[0], 1);
         sendMessages(e, [args.join(" ")]);
-      }else{
+      } else {
         sendMessages(e, [args.join(" ") + " [<@" + e.userID + ">]"]);
       }
       e.bot.deleteMessage({
@@ -141,6 +149,7 @@ var commands = {
     }
   },
   bat: {
+    category: "misc",
     description: "bat - how to run a bat file if you don't know",
     permission: {
       onlyMonitored: true
@@ -158,6 +167,7 @@ var commands = {
     }
   },
   emote: {
+    category: "entertainment",
     description: "emote <argument> - posts an emote",
     permission: {
       onlyMonitored: true
@@ -165,7 +175,7 @@ var commands = {
     cooldown: config.globalcooldown,
     lastTime: 0,
     action: function(args, e) {
-      if(!args[0]){
+      if (!args[0]) {
         return;
       }
       if (e.db.images[args[0].toLowerCase()]) {
@@ -183,6 +193,7 @@ var commands = {
     }
   },
   help: {
+    category: "info",
     description: "help - shows this silly",
     permission: {
       onlyMonitored: true
@@ -192,51 +203,54 @@ var commands = {
     action: function(args, e) {
       //sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\n9gag - gets a random post from 9GAG\nkitten <me> -  you know what this does ^_^\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
       var userInGroups = [];
-      		for(var grp in e.db.groups){
-      			if(e.db.groups[grp].indexOf(e.userID) > -1){
-      				userInGroups.push(grp);
-      			}
+      for (var grp in e.db.groups) {
+        if (e.db.groups[grp].indexOf(e.userID) > -1) {
+          userInGroups.push(grp);
+        }
 
-      		}
-      		if(userInGroups.length == 0)
-      			userInGroups.push("");
-      		var queryResult = [];
-      		for(var cmd in commands) {
-            if(commands[cmd])
-      			if(commands[cmd].permission.group != undefined){
-      				if(commands[cmd].permission.group.indexOf(userInGroups[0]) > -1){
-      					if(commands[cmd].permission.uid == undefined){
-      						queryResult.push(cmd);
-      						//console.log(cmd);
-      					}
-      				}
-      			}else{
-      				if(commands[cmd].permission.uid == undefined){
-      					queryResult.push(cmd);
-      				}
-      			}
-            else console.log("THIS COMMAND IS BEING NASTY: " + cmd);
-      		}
-      		//console.log(queryResult);
-      		queryResult = queryResult.sort();
-      		var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```";
-      		for(var cmd in queryResult){
-      			console.log(queryResult[cmd]);
-      			if(commands[queryResult[cmd]].description != undefined){
-      				helpMessage += commands[queryResult[cmd]].description + "\n"
-      			}else{
-      				helpMessage += queryResult[cmd] + " - No description\n"
-      			}
-      		}
-
-            sendMessages(e, [helpMessage +
-
-      	  "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."]);
-          }
+      }
+      if (userInGroups.length == 0)
+        userInGroups.push("");
+      var queryResult = [];
+      for (var cmd in commands) {
+        if (commands[cmd])
+          if (commands[cmd].permission.group != undefined) {
+            if (commands[cmd].permission.group.indexOf(userInGroups[0]) > -1) {
+              if (commands[cmd].permission.uid == undefined) {
+                queryResult.push(cmd);
+              }
+            }
+          } else {
+            if (commands[cmd].permission.uid == undefined) {
+              queryResult.push(cmd);
+            }
+          } else console.log("Unknown error when registering the following command: " + cmd);
+      }
+      //console.log(queryResult);
+      queryResult = queryResult.sort();
+      var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```";
+      for (var cmd in queryResult) {
+        console.log(queryResult[cmd]);
+        if (commands[queryResult[cmd]].description != undefined) {
+          helpMessage += commands[queryResult[cmd]].description + "\n"
+        } else {
+          helpMessage += queryResult[cmd] + " - No description\n"
+        }
+      }
+      e.bot.sendMessage({
+        to: e.channelID,
+        message: "Please check your private messages for the commands."
+      })
+      e.bot.sendMessage({
+        to: e.userID,
+        message: helpMessage + "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."
+      });
+    }
 
 
   },
   come: {
+    category: "management",
     description: "come - starts listening to the current channel and will answer commands",
     permission: {
       group: ["dev"],
@@ -268,6 +282,7 @@ var commands = {
     }
   },
   leave: {
+    category: "management",
     description: "leave - stops listening to the current channel",
     permission: {
       group: ["dev"],
@@ -286,6 +301,7 @@ var commands = {
     }
   },
   json: {
+    category: "management",
     description: "json - shows a formated json of the response received from the server",
     permission: {
       uid: [config.masterID],
@@ -297,16 +313,18 @@ var commands = {
     }
   },
   love: {
+    category: "misc",
     permission: {
       uid: [config.masterID],
       group: ["waifu"],
       onlyMonitored: true
     },
     action: function(args, e) {
-      sendMessages(e, ["<@" + e.userID + "> \u2764"]);
+      sendMessages(e, ["<@" + e.userID + "> \u2764 I love you"]);
     }
   },
   waifu: {
+    category: "misc",
     description: "waifu - who is the bot's waifu",
     permission: {
       onlyMonitored: true
@@ -314,25 +332,13 @@ var commands = {
     action: function(args, e) {
       sendMessages(e, ["My waifu is Benolot \u2764"]);
       var random = Math.floor(Math.random() * (50 - 1) + 1);;
-      if (random % 5==0){
-        sendMessages(e,["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
+      if (random % 5 == 0) {
+        sendMessages(e, ["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
       }
     }
   },
-  dance:require('./modules/module_personality.js'),
-    //TODO load a database with multiple greetings, like how images are done but with an array of messages for every greeting
-  group: require("./modules/module_group.js"),
-  greet: require("./modules/module_greetings.js"),
-  message: require("./modules/module_message.js"),
-  nightcore: require("./modules/module_nightcore.js"),
-  '9gag': require("./modules/module_9gag.js"),
-  kitten: require("./modules/module_kitten.js"),
-  anime: require("./modules/module_animedb.js"),
-  reddit: require("./modules/module_reddit.js"),
-  osu: require("./modules/module_osu.js"),
-  /*encode: ("./modules/module_hashing.js").encode,
-  decode: ("./modules/module_hashing.js").decode,*/
   info: {
+    category: "info",
     description: "info - shows information about the current status of the bot.",
     permission: {
       uid: [config.masterID],
@@ -341,12 +347,25 @@ var commands = {
     },
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
-      if(args[0].toLowerCase() == "zombie"){
-        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
+      if (args[0].toLowerCase() == "zombie") {
+        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
         return;
       }
-
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown/1000 +"** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
+    }
+  },
+  uptime: {
+    category: "info",
+    description: "uptimes - shows the bot's current uptime",
+    permission: {
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
+      e.bot.sendMessage({
+        to: e.channelID,
+        message: "I been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + t + "** seconds"
+      });
     }
   },
   debug: {
@@ -357,7 +376,23 @@ var commands = {
     action: function(args, e) {
       if (args[0] == "info") sendMessages(e, ["My current status is:\nI am running on version: `" + VERSION + "`\nI been awake since `" + tm(startTime) + "`\nI am in `" + MODE + '` mode right now.'])
     }
-  }
+  },
+  //modules
+  dance: require('./modules/module_personality.js').dance,
+  group: require("./modules/module_group.js"),
+  greet: require("./modules/module_greetings.js"),
+  message: require("./modules/module_message.js"),
+  nightcore: require("./modules/module_nightcore.js"),
+  '9gag': require("./modules/module_9gag.js"),
+  kitten: require("./modules/module_kitten.js"),
+  anime: require("./modules/module_animedb.js"),
+  reddit: require("./modules/module_reddit.js"),
+  osu: require("./modules/module_osu.js"),
+  encode: require("./modules/module_hashing.js").encode,
+  decode: require("./modules/module_hashing.js").decode,
+  admin: require("./modules/module_banning.js").ban,
+  flip: require("./modules/module_flip.js"),
+  reminder: require("./modules/module_reminder.js"),
 }
 
 bot.on('message', processMessage);
@@ -467,7 +502,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
         return;
       }
     }
-    if(!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
+    if (!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
     commands[parsed.command].action(parsed.args, {
       "user": user,
       "userID": userID,
@@ -475,11 +510,19 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       "rawEvent": rawEvent,
       "bot": bot,
       "db": database,
-      "config": config//,
-      //"auth": auth
+      "config": config //,
+        //"auth": auth
     });
     commands[parsed.command].lastTime = (new Date()).getTime();
-  }
+  }else {
+        if(database.messages[parsed.command]) {
+            bot.sendMessage({
+                to: channelID,
+                message: database.messages[parsed.command]
+            });
+            return;
+        }
+      }
 }
 
 function parse(string) {
@@ -504,7 +547,14 @@ function parse(string) {
 
 
 function canUserRun(command, uid, channelID) {
+  if (database.bans[uid]) {
+    bot.sendMessage({
+      to: uid,
+      message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME."
+    });
 
+    return false;
+  }
   if (!commands[command]) {
     if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
       console.log("User can't run the previous command because I am not listening in this channel.");
@@ -520,6 +570,7 @@ function canUserRun(command, uid, channelID) {
     return false;
   }
 
+
   if (!commands[command].permission) {
     if (database.channels.indexOf(channelID) != -1) {
       return true;
@@ -530,7 +581,7 @@ function canUserRun(command, uid, channelID) {
 
   if (commands[command].permission.onlyMonitored) {
     if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-      console.log("User can't run the previous command because I am not listening in this channel.");
+      console.log("User can't run the previous command because this command can be used only in channels what I monitor");
       return false;
     }
   }
@@ -555,10 +606,11 @@ function canUserRun(command, uid, channelID) {
     }
   }
 
+
   return false;
 }
 
 function tm(unix_tm) {
   var dt = new Date(unix_tm * 1000);
-  return /*dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + */dt;
+  return /*dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + */ dt;
 }

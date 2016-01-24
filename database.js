@@ -7,6 +7,7 @@ function database() {
     this.images = require("./db/images.json");
     this.nightcores = require("./db/nightcores.json");
     this.beatmaps = require("./db/beatmaps.json");
+    this.bans = require("./db/bans.json");
     this.saveConfig = function(args) {
       switch(args){
         case "groups":
@@ -44,6 +45,13 @@ function database() {
               }
             });
         break;
+        case "bans":
+          fs.writeFile("db/bans.json", JSON.stringify(this.bans, null, '\t').replace(/`/g, '\u200B`'), function(error) {
+              if (error) {
+                console.error("write error:  " + error.message);
+              }
+            });
+        break;
       }
     },
     this.isUserInGroup = function (uid, group) {
@@ -56,6 +64,15 @@ function database() {
             }
         }
 
+        return false;
+    }
+    this.isUserBanned = function (uid) {
+        if(!this.bans || !this.bans[uid]) {
+            return false;
+        }
+        if(this.bans[uid]){
+          return false;
+        }
         return false;
     }
 }

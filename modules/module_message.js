@@ -14,34 +14,29 @@ module.exports = {
       e.db.messages[args[1]] = msg;
       e.bot.sendMessage({
         to: e.channelID,
-        message: "<@" + e.userID + "> added `!" + args[1] + "`: " + msg
+        message: "<@" + e.userID + "> added `" + args[1] + "`: " + msg
       });
       e.db.saveConfig("messages");
     } else if (args[0] == "remove") {
       if (!e.db.messages[args[1]]) {
         e.bot.sendMessage({
           to: e.channelID,
-          message: "<@" + e.userID + "> `!" + args[1] + "` doesn't exist"
+          message: "<@" + e.userID + "> `" + args[1] + "` doesn't exist"
         });
         return;
       }
       delete e.db.messages[args[1]];
       e.bot.sendMessage({
         to: e.channelID,
-        message: "<@" + e.userID + "> removed `!" + args[1] + "`"
+        message: "<@" + e.userID + "> removed `" + args[1] + "`"
       });
       e.db.saveConfig("messages");
     } else if (args[0] == "list") {
-      var str = "**Message list:**\n\n```\nlisting is disabled for now\n```";
-      // var g = Object.keys(e.db.messages)
-      // for(var i = 0; i < g.length; i++) {
-      //     str += "`!" + g[i] + "`\n";
-      //     str += e.db.messages[g[i]] + "\n";
-      // }
-
+      var result = "";
+      for (var child in e.db.messages) {result += child + " - " + e.db.messages[child] + "\n"};
       e.bot.sendMessage({
-        to: e.channelID,
-        message: str
+        to: e.userID,
+        message: "<@" + e.userID + "> Listing every message I know [Count: **" + Object.keys(e.db.messages).length + "**]```\n" + result + "```"
       });
     }
   }
