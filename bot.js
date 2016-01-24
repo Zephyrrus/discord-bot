@@ -238,6 +238,7 @@ var commands = {
       var queryResult = {};
       for (var cmd in commands) {
         if (commands[cmd])
+          if(commands[cmd].hidden != undefined || commands.hidden != false)
           if (commands[cmd].permission.group != undefined) {
             if (commands[cmd].permission.group.indexOf(userInGroups[0]) > -1) {
               if (commands[cmd].permission.uid == undefined) {
@@ -353,6 +354,7 @@ var commands = {
   },
   love: {
     category: "misc",
+    hidden: true,
     permission: {
       uid: [config.masterID],
       group: ["waifu"],
@@ -422,7 +424,7 @@ var commands = {
   decode: require("./modules/module_hashing.js").decode,
   admin: require("./modules/module_banning.js").ban,
   flip: require("./modules/module_flip.js"),
-  reminder: require("./modules/module_reminder.js"),
+  remind: require("./modules/module_reminder.js"),
 }
 
 bot.on('message', processMessage);
