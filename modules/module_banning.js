@@ -5,6 +5,7 @@ var config = require('../configs/config.json');
 module.exports = {
   ban: {
     category: "management",
+    description: ["admin ban <@mention> - bans the mentioned user", "admin unban <mention> - unbans the mentioned user", "admin list - send a private message with every ban"],
     permission: {
       uid: [config.masterID],
       group: ['root', 'moderators'],

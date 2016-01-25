@@ -2,13 +2,12 @@ var uidFromMention = /<@([0-9]+)>/;
 
 var config = require('../configs/config.json');
 module.exports = {
+  category: "management",
+  description: ["group add <@mention> <group> - Adds the mentioned user to the group", "group remove <@mention> <group> - Removes the user from that group", "group list - lists every group"],
     permission: {
         uid: [config.masterID],
-        group: ["root"],
         onlyMonitored: true
     },
-    category: "ranks",
-    description: ["group add <@mention> <group> - Adds the mentioned user to the group", "group remove <@mention> <group> - Removes the user from that group", "group list - lists every group"],
     action: function(args, e) {
         if(args[0] == "add") {
             if(!uidFromMention.test(args[2])) {
@@ -81,7 +80,8 @@ module.exports = {
             for(var i = 0; i < g.length; i++) {
                 str += "`" + g[i] + "`: "
                 for(j = 0; j < e.db.groups[g[i]].length; j++) {
-                    str += " <@" + e.db.groups[g[i]][j] + ">";
+                    //str += " <@" + e.db.groups[g[i]][j] + ">";
+                    str += " " + getUserName(e.db.groups[g[i]][j], e);
                 }
                 str += "\n";
             }
@@ -93,3 +93,22 @@ module.exports = {
         }
     }
 }
+
+
+function getUserName(uid, e) {
+    for (var sid in e.bot.servers) {
+        if (e.bot.servers.hasOwnProperty(sid)) {
+            for (var member in e.bot.servers[sid].members) {
+                if (e.bot.servers[sid].members.hasOwnProperty(member)) {
+                    if(member == uid) {
+                        return e.bot.servers[sid].members[member].user.username
+                    }
+                }
+            }
+        }
+    }
+
+    e.logger.debug("Can't find username for " + uid);
+
+    return uid;
+};

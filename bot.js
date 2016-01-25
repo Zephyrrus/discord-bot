@@ -113,7 +113,7 @@ var commands = {
   },
   id: {
     category: "info",
-    description: "id <myid/channel/server/@mention> - shows the id of the requested channel/user/etc ",
+    description: "id <myid|channel|server|@mention> - shows the id of the requested channel/user/etc ",
     permission: {
       onlyMonitored: true
     },
@@ -237,17 +237,20 @@ var commands = {
       /* COMMANDS ADDING TO THE OBJECT */
       var queryResult = {};
       for (var cmd in commands) {
-        if (commands[cmd])
-          if(commands[cmd].hidden != undefined || commands.hidden != false)
-          if (commands[cmd].permission.group != undefined) {
-            if (commands[cmd].permission.group.indexOf(userInGroups[0]) > -1) {
-              if (commands[cmd].permission.uid == undefined) {
+        if (commands[cmd]){
+          if(commands[cmd].hidden == undefined || commands[cmd].hidden == false)
+          if (commands[cmd].permission.group != undefined && commands[cmd].permission.uid == undefined) {
+            if((commands[cmd].permission.group.indexOf(userInGroups[0]) > -1)){
                 pushCommand(queryResult, cmd);
-              }
+
             }
-          } else {
+          } else if(commands[cmd].permission.uid != undefined && commands[cmd].permission.uid == e.userID){
+              pushCommand(queryResult, cmd);
+          }
+          else if(commands[cmd].permission.uid == undefined){
             pushCommand(queryResult, cmd);
-          } else logger.error("Unknown error when registering the following command: " + cmd);
+          }
+        }else logger.error("Unknown error when registering the following command: " + cmd);
       }
 
       /* SORTING */
@@ -255,36 +258,38 @@ var commands = {
 
       /* HELP MESSAGE GENERATING */
       //queryResult = queryResult.sort();
-      var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n```\n";
+      var helpMessage = "All commands are prefixed with `" + config.listenTo + "`\n**Allowed commands: **\n\n";
       for (var category in queryResult) {
-        helpMessage += category.toString() + "\n";
+        helpMessage += "**" + category.toString() + "**\n";
         for (var command in queryResult[category]) {
           if (commands[queryResult[category][command]].description != undefined) {
             if (commands[queryResult[category][command]].description instanceof Array) {
-              for (var i = 0; i < commands[queryResult[category][command]].description.length; i++) {
+              for (var i = 0; i < commands[queryResult[category][command]].description.length; i++) { // this is used when the module has an array of commands
                 helpMessage += "\t" + commands[queryResult[category][command]].description[i] + "\n"
               }
             }else{
-              helpMessage += "\t" + commands[queryResult[category][command]].description + "\n"
+              helpMessage += "\t" + commands[queryResult[category][command]].description + "\n" // this is used when the module has a single command
             }
           } else {
             if(queryResult[command] == undefined){
-              logger.error(command + " - " + queryResult[command] + " - " + category);
+              logger.error(command + " - " + queryResult[category][command] + " - " + category);
             }
-            helpMessage += "\t" + queryResult[command] + " - No description\n"
+            helpMessage += "\t" + queryResult[category][command] + " - No description\n" // this is used when a module has no command descriptions declared
           }
         }
         helpMessage += "\n";
       }
+      helpMessage += "\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions.";
 
       if(e.bot.serverFromChannel(e.channelID) != undefined) e.bot.sendMessage({
         to: e.channelID,
         message: "Please check your private messages for the commands."
       })
-      e.bot.sendMessage({
+      recursiveSplitMessages(e, helpMessage);
+      /*e.bot.sendMessage({
         to: e.userID,
         message: helpMessage + "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."
-      });
+      });*/
     }
 
 
@@ -389,10 +394,10 @@ var commands = {
     action: function(args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
       if (args[0].toLowerCase() == "zombie") {
-        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime in seconds is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
+        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
         return;
       }
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + t + "** seconds\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
     }
   },
   uptime: {
@@ -405,7 +410,7 @@ var commands = {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
       e.bot.sendMessage({
         to: e.channelID,
-        message: "I been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + t + "** seconds"
+        message: "I been awake since **" + tm(startTime) + "**\n\nMy current uptime is: **" + getUptimeString() + "**"
       });
     }
   },
@@ -646,4 +651,57 @@ function canUserRun(command, uid, channelID) {
 function tm(unix_tm) {
   var dt = new Date(unix_tm * 1000);
   return /*dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + */ dt;
+}
+
+function getUptimeString() {
+  var t = Math.floor((((new Date()).getTime() / 1000) - startTime)) * 1000;
+  var uptime = "";
+  var d, h, m, s;
+  s = Math.floor(t / 1000);
+  m = Math.floor(s / 60);
+  s = s % 60;
+  h = Math.floor(m / 60);
+  m = m % 60;
+  d = Math.floor(h / 24);
+  h = h % 24;
+  d != 0 ? uptime += d + " days " : null;
+  h != 0 ? uptime += h + " hours " : null;
+  m != 0 ? uptime += m + " minutes " : null;
+  s != 0 ? uptime += s + " seconds " : null;
+  logger.debug({ t:t, d: d, h: h, m: m, s: s });
+  return uptime;
+}
+
+function convertMS(ms) {
+  var d, h, m, s;
+  s = Math.floor(ms / 1000);
+  m = Math.floor(s / 60);
+  s = s % 60;
+  h = Math.floor(m / 60);
+  m = m % 60;
+  d = Math.floor(h / 24);
+  h = h % 24;
+  return { d: d, h: h, m: m, s: s };
+}
+
+//THIS FUNCTION WORKS SOMEHOW AS IS, NEVER TOUCH IT AGAIN OR IT MAY BREAK AND THE EVIL MAY BE SUMMONED
+function recursiveSplitMessages(e, msg, counter, lastLength){
+  counter = counter || 1;
+  var maxUncalculatedLength = 1900;
+  var total = Math.ceil(msg.length / maxUncalculatedLength);
+  var aditionalLenght = 0;
+  while(msg[((lastLength || 0)+maxUncalculatedLength)+aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990){
+    aditionalLenght++;
+  }
+  var currentSplice = msg.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
+
+  console.log(counter);
+  e.bot.sendMessage({
+    to: e.userID,
+    message: currentSplice
+  }, function(resp){
+      if(counter < total){
+        recursiveSplitMessages(e, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
+      }
+  });
 }
