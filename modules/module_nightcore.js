@@ -69,7 +69,7 @@ module.exports = {
       for (var i = 0; i < e.db.nightcores['id'].length; i++) {
         if (e.db.nightcores['id'][i] == youtubeID) {
           console.log(e.db.nightcores['id'][i]);
-          e.db.nightcores['id'].splice(e.db.nightcores['id'][i], 1);
+          e.db.nightcores['id'].splice(e.db.nightcores['id'].indexOf(e.db.nightcores['id'][i]), 1); // e.db.nightcores['id'].indexOf(youtubeID)
           e.bot.sendMessage({
             to: e.channelID,
             message: "<@" + e.userID + "> I forgot that video."
