@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.3.6 ~ Main branch";
+var VERSION = "1.3.8 ~ Main branch";
 var MODE = "production";
 
 process.argv.forEach(function(val, index, array) {
@@ -410,7 +410,7 @@ var commands = {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
       e.bot.sendMessage({
         to: e.channelID,
-        message: "I been awake since **" + tm(startTime) + "**\n\nMy current uptime is: **" + getUptimeString() + "**"
+        message: "I been awake since **" + tm(startTime) + "**\nMy current uptime is: **" + getUptimeString() + "**"
       });
     }
   },
