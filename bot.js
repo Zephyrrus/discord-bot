@@ -31,6 +31,10 @@ var uidFromMention = /<@([0-9]+)>/;
 var database = new(require("./database.js"))();
 var away = [];
 config.deletereddit = config.deletereddit || false;
+
+
+////
+var webConnecter = require("./modules/web/webModule.js");
 /*----------------------------------------------*/
 /*Event area*/
 bot.on("err", function(error) {
@@ -66,6 +70,17 @@ bot.on("ready", function(rawEvent) {
   });
   logger.info("Version: " + VERSION);
   logger.info("Set status!");
+  var web = webConnecter({
+    "bot": bot,
+    "db": database,
+    "config": config,
+    "logger": logger,
+    "botStatus": {
+      "startTime": startTime,
+      "cooldown": config.globalcooldown,
+      "nsfwFilter": config.allowNSFW
+    }
+  },bot);
 });
 
 /*----------------------------------------------*/
