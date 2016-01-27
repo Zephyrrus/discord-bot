@@ -39,7 +39,7 @@ module.exports = {
           e.bot.sendMessage({
             to: e.channelID,
             message: "<@" + e.userID + "> I'm looking up that osu! beatmap ID if it's correct, please wait a few seconds!\n" //+ID: `"+youtubeID+"`"
-          }, function(response) {
+          }, function(error, response) {
             getBeatmap(osuID, function(resp) {
               if (resp != undefined) {
                 e.db.beatmaps['maps'].push({
@@ -114,7 +114,7 @@ module.exports = {
       e.bot.sendMessage({
         to: e.channelID,
         message: "<@" + e.userID + "> I'm searching for the perfect osu! beatmap for you!\n" //+ID: `"+youtubeID+"`"
-      }, function(response) {
+      }, function(error, response) {
         getRandomOsu(function(resp) {
           if (resp != undefined) {
             e.bot.editMessage({

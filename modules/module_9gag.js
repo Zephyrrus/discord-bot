@@ -159,11 +159,11 @@ function post9GAG(args, e, gagObject) {
         e.bot.sendMessage({
           to: e.channelID,
           message: "<@" + e.userID + ">: **I am grabbing a random image from 9gag for you** \u2764",
-        }, function(response) {
+        }, function(error, response) {
           e.bot.uploadFile({
             to: e.channelID,
             file: fs.createReadStream(filename)
-          }, function(response) {
+          }, function(error, response) {
             e.bot.sendMessage({
               to: e.channelID,
               message: "Title: **" + gagObject.title + "**",

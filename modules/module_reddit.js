@@ -86,14 +86,13 @@ function doReddit(args, e) {
               to: e.channelID,
               message: "<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764",
               //typing: true
-            }, function(response) { //CB Optional
-
+            }, function(err, response) {
               e.bot.uploadFile({
                 to: e.channelID,
                 file: fs.createReadStream(filename)
-              }, function(response) { //CB Optional
-                e.logger.error("response: " + response);
-                if(!response.message && response.message == "Missing permission..."){
+              }, function(error, response) {
+                if(error.indexOf("403" > -1)){
+                  e.logger.error("[reddit] error: " + error);
                    e.bot.sendMessage({
                       to: e.channelID,
                       message: "I don't have the permissions to upload files, here's the link to it: " + link,

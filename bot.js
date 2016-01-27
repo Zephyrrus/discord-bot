@@ -99,13 +99,13 @@ var commands = {
       e.bot.sendMessage({
         to: e.channelID,
         message: "<@" + e.userID + "> Pong"
-      }, function(response) {
+      }, function(error, response) {
         var delay = Math.round((new Date()).getTime() - delayStart);
         bot.editMessage({
           channel: response.channel_id,
           messageID: response.id,
           message: "<@" + e.userID + "> Pong\nNetwork delay: **" + delay + "** ms"
-        }, function(response) { //CB Optional
+        }, function(error, response) { //CB Optional
           //console.log(response);
         });
       });
@@ -188,7 +188,7 @@ var commands = {
       bot.uploadFile({
         to: e.channelID,
         file: fs.createReadStream("images/giphy.gif")
-      }, function(response) { //CB Optional
+      }, function(error, response) { //CB Optional
 
       });
     }

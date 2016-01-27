@@ -17,17 +17,17 @@
   },
   "homepage": "https://github.com/Zephyrrus/discord-bot#readme",
   "dependencies": {
-    "discord.io": "^1.6.5",
+    "body-parser": "^1.14.2",
+    "cookie-parser": "^1.4.0",
+    "discord.io": "github:izy521/discord.io",
+    "express": "^4.13.3",
     "follow-redirects": "0.0.7",
+    "npm": "^3.5.3",
     "request": "^2.61.0",
     "snoocore": "^3.2.1",
     "sqlite3": "^3.1.1",
     "winston": "^2.1.1",
     "ws": "^0.8.0",
-    "x-ray": "^2.0.3",
-    "body-parser": "^1.14.2",
-    "cookie-parser": "^1.4.0",
-    "express": "^4.13.3",
-    "npm": "^3.5.3"
+    "x-ray": "^2.0.3"
   }
 }

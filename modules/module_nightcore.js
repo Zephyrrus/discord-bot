@@ -30,7 +30,7 @@ module.exports = {
           e.bot.sendMessage({
             to: e.channelID,
             message: "<@" + e.userID + "> I'm looking up that youtube ID if it's correct, please wait a few seconds!\n"//+ID: `"+youtubeID+"`"
-          },function(response) {
+          },function(error, response) {
             youtubeModule.gettitlefromid(youtubeID, function(resp) {
               if (resp != undefined) {
                 //e.db.nightcores['id'].push(args[1]);
