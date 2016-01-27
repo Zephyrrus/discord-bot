@@ -72,7 +72,7 @@ bot.on("ready", function(rawEvent) {
   logger.info("Set status!");
   var web = webConnecter({
     "bot": bot,
-    "db": database,
+    "database": database,
     "config": config,
     "logger": logger,
     "botStatus": {
@@ -412,7 +412,7 @@ var commands = {
         sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
         return;
       }
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=zwZ89IZG5WA :3"]);
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=464GdAc1vmc :3"]);
     }
   },
   uptime: {
@@ -502,8 +502,13 @@ function download(url, dest, cb) {
 
 function processMessage(user, userID, channelID, message, rawEvent) {
   //logger.debug("-----------");
-  logger.debug("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
+  //logger.debug("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
+  if(bot.serverFromChannel(channelID) == undefined){
+        logger.debug("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
 
+    }else{
+        logger.debug("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+    }
   if (userID == bot.id) {
     return;
   }
@@ -710,7 +715,7 @@ function recursiveSplitMessages(e, msg, counter, lastLength){
   }
   var currentSplice = msg.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
 
-  console.log(counter);
+  //console.log(counter);
   e.bot.sendMessage({
     to: e.userID,
     message: currentSplice

@@ -18,7 +18,7 @@ function database() {
           });
         break;
         case "messages":
-          fs.writeFile("db/messages.json", JSON.stringify(this.messages), function(error) {
+          fs.writeFile("db/messages.json", JSON.stringify(this.messages, null, '\t').replace(/`/g, '\u200B`'), function(error) {
             if (error) {
               console.error("write error:  " + error.message);
             }
@@ -32,14 +32,14 @@ function database() {
            });
         break;
         case "nightcores":
-          fs.writeFile("db/nightcores.json", JSON.stringify(this.nightcores), function(error) {
+          fs.writeFile("db/nightcores.json", JSON.stringify(this.nightcores, null, '\t').replace(/`/g, '\u200B`'), function(error) {
               if (error) {
                 console.error("write error:  " + error.message);
               }
             });
         break;
         case "beatmaps":
-          fs.writeFile("db/beatmaps.json", JSON.stringify(this.beatmaps), function(error) {
+          fs.writeFile("db/beatmaps.json", JSON.stringify(this.beatmaps, null, '\t').replace(/`/g, '\u200B`'), function(error) {
               if (error) {
                 console.error("write error:  " + error.message);
               }
