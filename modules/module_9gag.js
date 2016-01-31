@@ -115,6 +115,18 @@ function isInArray(value, array) {
 
 //module.exports = nineGAGScraper;
 module.exports = {
+  properties: {
+  "module": true,
+  "info": {
+    "description": "returns a random image from 9gag",
+    "author": "Zephy",
+    "version": "1.0.0",
+    "importance": "addon",
+    "name": "9GAG poster",
+    "moduleName": "9gag"
+  },
+  "requiresDB": false,
+},
   lastTime: 0,
   cooldown: 5000,
   permission: {

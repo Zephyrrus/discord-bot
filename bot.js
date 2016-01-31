@@ -1,6 +1,12 @@
 /*Variable area*/
-var VERSION = "1.3.8 ~ Main branch";
+var VERSION = "1.3.8 ~ Web branch";
 var MODE = "production";
+var Discordbot = require('discord.io');
+var fs = require('fs');
+var http = require('http');
+var logger = require("winston");
+var databaseHandler = require("./modules/database/databaseHandler.js");
+var dbHandlerInstance = new databaseHandler();
 
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
@@ -12,12 +18,12 @@ if (MODE === "production") {
 } else {
   var config = require('./configs/config_dev.json');
   var auth = require('./configs/auth_dev.json'); // or remove ./ for absolute path ^_^
+  logger.add(logger.transports.File, {
+    level: 'debug',
+    filename: "log.txt"
+  });
 }
 
-var Discordbot = require('discord.io');
-var fs = require('fs');
-var http = require('http');
-var logger = require("winston");
 GLOBAL.MODE = MODE;
 var bot = new Discordbot({
   email: auth.discord.email,
@@ -30,8 +36,6 @@ var uidFromMention = /<@([0-9]+)>/;
 
 var database = new(require("./database.js"))();
 var away = [];
-config.deletereddit = config.deletereddit || false;
-
 
 ////
 var webConnecter = require("./modules/web/webModule.js");
@@ -55,10 +59,6 @@ bot.on("ready", function(rawEvent) {
       password: auth.discord.password, //Required
       username: config.username //Optional
     });
-    logger.add(logger.transports.File, {
-      level: 'debug',
-      filename: "log.txt"
-    });
   }
   logger.info("Connected!");
   logger.info("Logged in as: ");
@@ -80,7 +80,7 @@ bot.on("ready", function(rawEvent) {
       "cooldown": config.globalcooldown,
       "nsfwFilter": config.allowNSFW
     }
-  },bot);
+  }, bot);
 });
 
 /*----------------------------------------------*/
@@ -105,14 +105,14 @@ var commands = {
           channel: response.channel_id,
           messageID: response.id,
           message: "<@" + e.userID + "> Pong\nNetwork delay: **" + delay + "** ms"
-        }, function(error, response) { //CB Optional
+        }, function(error, response) {
           //console.log(response);
         });
       });
       logger.debug("Ponged <@" + e.userID + ">");
     }
   },
-  setstatus: {
+  status: {
     category: "management",
     permission: {
       uid: [config.masterID],
@@ -188,7 +188,7 @@ var commands = {
       bot.uploadFile({
         to: e.channelID,
         file: fs.createReadStream("images/giphy.gif")
-      }, function(error, response) { //CB Optional
+      }, function(error, response) {
 
       });
     }
@@ -252,20 +252,19 @@ var commands = {
       /* COMMANDS ADDING TO THE OBJECT */
       var queryResult = {};
       for (var cmd in commands) {
-        if (commands[cmd]){
-          if(commands[cmd].hidden == undefined || commands[cmd].hidden == false)
-          if (commands[cmd].permission.group != undefined && commands[cmd].permission.uid == undefined) {
-            if((commands[cmd].permission.group.indexOf(userInGroups[0]) > -1)){
+        if (commands[cmd]) {
+          if (commands[cmd].hidden == undefined || commands[cmd].hidden == false)
+            if (commands[cmd].permission.group != undefined && commands[cmd].permission.uid == undefined) {
+              if ((commands[cmd].permission.group.indexOf(userInGroups[0]) > -1)) {
                 pushCommand(queryResult, cmd);
 
-            }
-          } else if(commands[cmd].permission.uid != undefined && commands[cmd].permission.uid == e.userID){
-              pushCommand(queryResult, cmd);
-          }
-          else if(commands[cmd].permission.uid == undefined){
+              }
+            } else if (commands[cmd].permission.uid != undefined && commands[cmd].permission.uid == e.userID) {
+            pushCommand(queryResult, cmd);
+          } else if (commands[cmd].permission.uid == undefined) {
             pushCommand(queryResult, cmd);
           }
-        }else logger.error("Unknown error when registering the following command: " + cmd);
+        } else logger.error("Unknown error when registering the following command: " + cmd);
       }
 
       /* SORTING */
@@ -282,11 +281,11 @@ var commands = {
               for (var i = 0; i < commands[queryResult[category][command]].description.length; i++) { // this is used when the module has an array of commands
                 helpMessage += "\t" + commands[queryResult[category][command]].description[i] + "\n"
               }
-            }else{
+            } else {
               helpMessage += "\t" + commands[queryResult[category][command]].description + "\n" // this is used when the module has a single command
             }
           } else {
-            if(queryResult[command] == undefined){
+            if (queryResult[command] == undefined) {
               logger.error(command + " - " + queryResult[category][command] + " - " + category);
             }
             helpMessage += "\t" + queryResult[category][command] + " - No description\n" // this is used when a module has no command descriptions declared
@@ -296,11 +295,11 @@ var commands = {
       }
       helpMessage += "\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions.";
 
-      if(e.bot.serverFromChannel(e.channelID) != undefined) e.bot.sendMessage({
+      if (e.bot.serverFromChannel(e.channelID) != undefined) e.bot.sendMessage({
         to: e.channelID,
         message: "Please check your private messages for the commands."
       })
-      recursiveSplitMessages(e, helpMessage);
+      recursiveSplitMessages(e, helpMessage, e.userID);
       /*e.bot.sendMessage({
         to: e.userID,
         message: helpMessage + "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."
@@ -429,6 +428,102 @@ var commands = {
       });
     }
   },
+  debug: {
+    category: "debug",
+    description: "N/A",
+    hidden: true,
+    permission: {
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      if (args[0] == "module") {
+        args.splice(0,1); // get rid of that shit in front of the module name
+        /*  "module": true,
+          "info": {
+            "description": "used for disable access of specific users to the bot.",
+            "author": "Zephy",
+            "version": "1.0.0",
+            "importance": "core",
+            "name": "Ban manager",
+            "moduleName": "ban"
+          },
+          "requiresDB": true,
+          "databaseStructure": {
+            "id": "autonumber",
+            "uid": "number",
+            "reason": "string",
+            "addedDate": "datetime",
+            "addedBy": "number"
+          }
+        },*/
+        var result = "```\nListing information for module [" + args[0] +"]:\n";
+        for (var cmd in commands) {
+
+          if(commands[cmd].properties != undefined && commands[cmd].properties.info != undefined){
+            if(commands[cmd].properties.info.moduleName == args[0]){
+              result += "\tModule info: \n"
+              result += "\t\tModule name: " + (commands[cmd].properties.info.name || "N/A") + "\n";
+              result += "\t\tModule description: " + (commands[cmd].properties.info.description || "N/A") + "\n";
+              result += "\t\tModule importance: " + (commands[cmd].properties.info.importance || "N/A") + "\n";
+              result += "\t\tModule version: " + (commands[cmd].properties.info.version || "N/A") + "\n";
+              result += "\t\tModule author: " + (commands[cmd].properties.info.author || "N/A") + "\n";
+              result += "\t\tModule moduleName: " + (commands[cmd].properties.info.moduleName || "N/A") + "\n";
+              result += "\tRequires database: " + (commands[cmd].properties.requiresDB || "False") + "\n"
+              if(commands[cmd].properties.requiresDB != undefined && commands[cmd].properties.requiresDB == true){
+                result += "\tDatabase structure: \n"
+                if(commands[cmd].properties != undefined){
+                  for (var fieldName in commands[cmd].properties.databaseStructure) {
+                    result += "\t\t" + fieldName + ":" + JSON.stringify(commands[cmd].properties.databaseStructure[fieldName.toString()]) + "\n";
+                  }
+                }else{
+                  result += "\t\tWarning: This module has the requiredDB flag set to true but no database structure is defined.\n"
+                }
+              }
+              result += "```";
+              e.bot.sendMessage({
+                to: e.channelID,
+                message: result
+              });
+            }
+          }
+        }
+      } else {
+        var result = "```\nCurrently loaded modules:\n";
+        for (var cmd in commands) {
+          if (commands[cmd]) {
+            if (commands[cmd].properties !== undefined && commands[cmd].properties.info !== undefined) {
+              result += "\t" + (commands[cmd].properties.info.name || "N/A") + " [" + (commands[cmd].properties.info.moduleName || "N/A") + "], " + "v" + (commands[cmd].properties.info.version || "N/A") + " " + "(by " + (commands[cmd].properties.info.author || "N/A") + ")" + "\n";
+            }
+          }
+        }
+        result += "``` \n There may be more modules loaded but their header is not properly set"
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: result
+        });
+      }
+    }
+  },
+  database:{
+    category: "info",
+    description: "uptimes - shows the bot's current uptime",
+    permission: {
+      onlyMonitored: true
+    },
+    action: function(args, e) {
+      var databaseStructure = [
+              {name: "id", type: "autonumber", primaryKey: true},
+              {name: "uid", type: "number"},
+              {name: "reason", type: "string"},
+              {name: "addedDate", type: "datetime"},
+              {name: "addedBy", type: "number"}
+            ];
+      var databaseInsert = [{paramName: "id",  value:"0"}, {paramName: "kappa", value:"benobestmod"}];
+      dbHandlerInstance.add("testModule", databaseStructure, databaseInsert);
+    }
+
+
+  },
   //modules
   dance: require('./modules/module_personality.js').dance,
   group: require("./modules/module_group.js"),
@@ -444,7 +539,7 @@ var commands = {
   decode: require("./modules/module_hashing.js").decode,
   admin: require("./modules/module_banning.js").ban,
   flip: require("./modules/module_flip.js"),
-  remind: require("./modules/module_reminder.js"),
+  remind: require("./modules/module_reminder.js")
 }
 
 bot.on('message', processMessage);
@@ -475,7 +570,7 @@ function sendMessages(e, messageArr, interval) {
         e.bot.sendMessage({
           to: e.channelID,
           message: messageArr.shift()
-        }, function(res) {
+        }, function(err, res) {
           resArr.push(res);
           if (resArr.length === len)
             if (typeof(callback) === 'function') callback(resArr);
@@ -501,14 +596,12 @@ function download(url, dest, cb) {
 };
 
 function processMessage(user, userID, channelID, message, rawEvent) {
-  //logger.debug("-----------");
-  //logger.debug("Got message: '" + message.replace(/[^A-Za-z0-9 ]/g, '?') + "' on channel '" + channelID.replace(/[^A-Za-z0-9 ]/g, '?') + "' from '" + user + "' (" + userID.replace(/[^A-Za-z0-9 ]/g, '?') + ")");
-  if(bot.serverFromChannel(channelID) == undefined){
-        logger.debug("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+  if (bot.serverFromChannel(channelID) == undefined) {
+    logger.debug("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
 
-    }else{
-        logger.debug("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
-    }
+  } else {
+    logger.debug("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+  }
   if (userID == bot.id) {
     return;
   }
@@ -529,7 +622,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     try {
       bot.sendMessage({
         to: channelID,
-        message: "```" + eval(parsed.args.join(" ")) + "```"
+        message: "```javascript\n" + eval(parsed.args.join(" ")) + "```"
       });
     } catch (e) {
       bot.sendMessage({
@@ -584,25 +677,19 @@ function processMessage(user, userID, channelID, message, rawEvent) {
 }
 
 function parse(string) {
-  /*if (string.charAt(0) != '~') {
-    return false;
-  }*/
-
   var pieces = string.split(" ");
+  pieces = pieces.filter(Boolean); // removes ""
   if (pieces[0].toLowerCase() != config.listenTo) {
     return false
   }
   if (pieces[1] === undefined) return null;
   if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
 
-  /*pieces[0] = pieces[0].slice(config.username.length, pieces[0].length);*/
-  //console.log(pieces.slice(1, pieces.length));
   return {
     command: pieces[1].toLowerCase(),
     args: pieces.slice(2, pieces.length)
   };
 }
-
 
 function canUserRun(command, uid, channelID) {
   if (database.bans[uid]) {
@@ -688,7 +775,13 @@ function getUptimeString() {
   h != 0 ? uptime += h + " hours " : null;
   m != 0 ? uptime += m + " minutes " : null;
   s != 0 ? uptime += s + " seconds " : null;
-  logger.debug({ t:t, d: d, h: h, m: m, s: s });
+  logger.debug({
+    t: t,
+    d: d,
+    h: h,
+    m: m,
+    s: s
+  });
   return uptime;
 }
 
@@ -701,27 +794,41 @@ function convertMS(ms) {
   m = m % 60;
   d = Math.floor(h / 24);
   h = h % 24;
-  return { d: d, h: h, m: m, s: s };
+  return {
+    d: d,
+    h: h,
+    m: m,
+    s: s
+  };
 }
 
+
 //THIS FUNCTION WORKS SOMEHOW AS IS, NEVER TOUCH IT AGAIN OR IT MAY BREAK AND THE EVIL MAY BE SUMMONED
-function recursiveSplitMessages(e, msg, counter, lastLength){
+/*
+ * Recursively goes over a long message and split's in in several messages with len < 2000
+ *
+ * @input e - the e OBJECT
+ * @input msg - the message to be split up and sent
+ * @input channelID - the channel where the message has to be sent
+ * @input counter - splice counter, don't set this manually except if you know what you're doing
+ * @lastLength - the lastLength of the message sent previously
+ */
+
+function recursiveSplitMessages(e, msg, channelID, counter, lastLength) {
   counter = counter || 1;
   var maxUncalculatedLength = 1900;
   var total = Math.ceil(msg.length / maxUncalculatedLength);
   var aditionalLenght = 0;
-  while(msg[((lastLength || 0)+maxUncalculatedLength)+aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990){
+  while (msg[((lastLength || 0) + maxUncalculatedLength) + aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990) {
     aditionalLenght++;
   }
   var currentSplice = msg.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
-
-  //console.log(counter);
   e.bot.sendMessage({
-    to: e.userID,
+    to: channelID,
     message: currentSplice
-  }, function(resp){
-      if(counter < total){
-        recursiveSplitMessages(e, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
-      }
+  }, function(resp) {
+    if (counter < total) {
+      recursiveSplitMessages(e, msg, channelID, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
+    }
   });
 }
