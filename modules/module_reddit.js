@@ -35,7 +35,8 @@ function getSubreddit(subreddit, NSFWFlag, callback) {
       if (r.test(child.data.url)) links.push({
         "title": child.data.title,
         "link": child.data.url,
-        "NSFW": child.data.over_18 || false
+        "NSFW": child.data.over_18 || false,
+        "permalink": child.data.permalink || "N/A"
       });
     }
   }
@@ -100,7 +101,7 @@ function doReddit(args, e) {
                 }else{
                 e.bot.sendMessage({
                   to: e.channelID,
-                  message: "Title: **" + responseReddit.title + "**",
+                  message: "**Title**: " + responseReddit.title + "\n**Permalink**: reddit.com" + responseReddit.permalink,
                 });
                 if (e.config.deletereddit) fs.unlink(filename);
               }
