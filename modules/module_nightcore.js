@@ -3,6 +3,26 @@ var youtubeModule = require("./module_youtube.js");
 var utils = require("./utils.js");
 
 module.exports = {
+  properties: {
+    "module": true,
+    "info": {
+      "description": "nightcore dispenser module",
+      "author": "Zephy",
+      "version": "1.0.0",
+      "importance": "addon",
+      "name": "Nightcore dispenser",
+      "moduleName": "nightcore"
+    },
+    "requiresDB": true,
+    "databaseStructure": {
+      "id": "autonumber",
+      "youtubeid": "string",
+      "title": "string",
+      "addedOn": "datetime",
+      "addedBy": "number",
+      "tags": "string"
+    }
+  },
   lastTime: 0,
   cooldown: 0,
   category: "nightcore",
@@ -29,16 +49,16 @@ module.exports = {
         if (!e.db.nightcores[youtubeID.toString()]) {
           e.bot.sendMessage({
             to: e.channelID,
-            message: "<@" + e.userID + "> I'm looking up that youtube ID if it's correct, please wait a few seconds!\n"//+ID: `"+youtubeID+"`"
-          },function(error, response) {
+            message: "<@" + e.userID + "> I'm looking up that youtube ID if it's correct, please wait a few seconds!\n" //+ID: `"+youtubeID+"`"
+          }, function(error, response) {
             youtubeModule.gettitlefromid(youtubeID, function(resp) {
               if (resp != undefined) {
                 //e.db.nightcores['id'].push(args[1]);
-                e.db.nightcores[youtubeID.toString()] = JSON.parse("{\"title\":\"" + resp.title + "\",\"addedBy\":\"" + e.userID +"\",\"addedOn\":\"" + Date() + "\",\"tags\":" + JSON.stringify(resp.tags || [ "null" ]) + "}"); //REMAKE DELETE AND ADD AND LIST AND EVERYTHING
+                e.db.nightcores[youtubeID.toString()] = JSON.parse("{\"title\":\"" + resp.title + "\",\"addedBy\":\"" + e.userID + "\",\"addedOn\":\"" + Date() + "\",\"tags\":" + JSON.stringify(resp.tags || ["null"]) + "}");
                 e.bot.editMessage({
                   channel: response.channel_id,
                   messageID: response.id,
-                  message: "<@" + e.userID + "> Thanks for teaching me this song.\nTitle: **" + resp.title + "**\n"//+ID: `"+youtubeID+"`"
+                  message: "<@" + e.userID + "> Thanks for teaching me this song.\nTitle: **" + resp.title + "**\n" //+ID: `"+youtubeID+"`"
                 });
                 e.db.saveConfig("nightcores");
               } else {
@@ -64,15 +84,15 @@ module.exports = {
       }
 
     } else if (args[0] === "delete") {
-        if (e.db.nightcores[youtubeID]) {
-          delete e.db.nightcores[youtubeID];
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "<@" + e.userID + "> I forgot that video."
-          });
-          e.db.saveConfig("nightcores");
-          return;
-        }
+      if (e.db.nightcores[youtubeID]) {
+        delete e.db.nightcores[youtubeID];
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> I forgot that video."
+        });
+        e.db.saveConfig("nightcores");
+        return;
+      }
 
       e.bot.sendMessage({
         to: e.channelID,
@@ -109,21 +129,21 @@ function randomInt(low, high) {
 }
 
 function pickRandomProperty(obj) {
-    var result;
-    var count = 0;
-    for (var prop in obj)
-        if (Math.random() < 1/++count)
-           result = prop;
-    return result;
+  var result;
+  var count = 0;
+  for (var prop in obj)
+    if (Math.random() < 1 / ++count)
+      result = prop;
+  return result;
 }
 
 
-function recursiveSplitMessages(e, msg, counter, lastLength){
+function recursiveSplitMessages(e, msg, counter, lastLength) {
   counter = counter || 1;
   var maxUncalculatedLength = 1900;
   var total = Math.ceil(msg.length / maxUncalculatedLength);
   var aditionalLenght = 0;
-  while(msg[((lastLength || 0)+maxUncalculatedLength)+aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990){
+  while (msg[((lastLength || 0) + maxUncalculatedLength) + aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990) {
     aditionalLenght++;
   }
   var currentSplice = msg.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
@@ -132,9 +152,9 @@ function recursiveSplitMessages(e, msg, counter, lastLength){
   e.bot.sendMessage({
     to: e.userID,
     message: currentSplice
-  }, function(resp){
-      if(counter < total){
-        recursiveSplitMessages(e, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
-      }
+  }, function(resp) {
+    if (counter < total) {
+      recursiveSplitMessages(e, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
+    }
   });
 }
