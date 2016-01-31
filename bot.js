@@ -5,8 +5,8 @@ var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
-var databaseHandler = require("./modules/database/databaseHandler.js");
-var dbHandlerInstance = new databaseHandler();
+/*var databaseHandler = require("./modules/database/databaseHandler.js");
+var dbHandlerInstance = new databaseHandler();*/
 
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
