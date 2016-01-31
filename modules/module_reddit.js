@@ -91,11 +91,11 @@ function doReddit(args, e) {
                 to: e.channelID,
                 file: fs.createReadStream(filename)
               }, function(error, response) {
-                if(error.indexOf("403" > -1)){
+                if(error != undefined && error.indexOf("403") > -1){
                   e.logger.error("[reddit] error: " + error);
                    e.bot.sendMessage({
                       to: e.channelID,
-                      message: "I don't have the permissions to upload files, here's the link to it: " + link,
+                      message: "I don't have the permissions to upload files on this channel, here's the link to it: " + link,
                     });
                 }else{
                 e.bot.sendMessage({
@@ -119,6 +119,18 @@ function doReddit(args, e) {
 }
 
 module.exports = {
+  properties: {
+    "module": true,
+    "info": {
+      "description": "grabs and posts random images from a specific subreddit",
+      "author": "Zephy",
+      "version": "1.0.0",
+      "importance": "addon",
+      "name": "Reddit poster",
+      "moduleName": "reddit"
+    },
+    "requiresDB": false,
+  },
   lastTime: 0,
   cooldown: 5000,
   category: "entertainment",

@@ -8,6 +8,26 @@ if (GLOBAL.MODE === "production") {
   var auth = require('../configs/auth_dev.json');
 }
 module.exports = {
+  properties: {
+    "module": true,
+    "info": {
+      "description": "osu beatmap dispenser module",
+      "author": "Zephy",
+      "version": "1.0.0",
+      "importance": "addon",
+      "name": "Osu! dispenser",
+      "moduleName": "osu"
+    },
+    "requiresDB": true,
+    "databaseStructure": {
+      "id": "autonumber",
+      "beatmapId": "string",
+      "title": "string",
+      "addedOn": "datetime",
+      "addedBy": "number",
+      "tags": "string"
+    }
+  },
   lastTime: 0,
   cooldown: 5000,
   category: "osu",

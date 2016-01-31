@@ -4,6 +4,25 @@ var uidFromMention = /<@([0-9]+)>/;
 var config = require('../configs/config.json');
 module.exports = {
   ban: {
+    properties: {
+      "module": true,
+      "info": {
+        "description": "used for disable access of specific users to the bot.",
+        "author": "Zephy",
+        "version": "1.0.0",
+        "importance": "core",
+        "name": "Ban manager",
+        "moduleName": "ban"
+      },
+      "requiresDB": true,
+      "databaseStructure": [
+        {name: "id", type: "autonumber", primaryKey: true},
+        {name: "uid", type: "number"},
+        {name: "reason", type: "string"},
+        {name: "addedDate", type: "datetime"},
+        {name: "addedBy", type: "number"}
+      ]
+    },
     category: "management",
     description: ["admin ban <@mention> - bans the mentioned user", "admin unban <mention> - unbans the mentioned user", "admin list - send a private message with every ban"],
     permission: {

@@ -53,7 +53,7 @@ function database() {
             });
         break;
       }
-    },
+    }
     this.isUserInGroup = function (uid, group) {
         if(!this.groups || !this.groups[group]) {
             return false;

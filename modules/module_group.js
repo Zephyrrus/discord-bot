@@ -2,6 +2,25 @@ var uidFromMention = /<@([0-9]+)>/;
 
 var config = require('../configs/config.json');
 module.exports = {
+  properties: {
+    "module": true,
+    "info": {
+      "description": "used for managing the ranks of the bot.",
+      "author": "Zephy",
+      "version": "1.0.0",
+      "importance": "core",
+      "name": "Group manager",
+      "moduleName": "group"
+    },
+    "requiresDB": true,
+    "databaseStructure": {
+      "id": "autonumber",
+      "uid": "number",
+      "rank": "string",
+      "addedDate": "datetime",
+      "addedBy": "number"
+    }
+  },
   category: "management",
   description: ["group add <@mention> <group> - Adds the mentioned user to the group", "group remove <@mention> <group> - Removes the user from that group", "group list - lists every group"],
     permission: {

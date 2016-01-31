@@ -2,6 +2,18 @@ var fs = require('fs');
 var http = require('follow-redirects').http;
 
 module.exports = {
+  properties: {
+  "module": true,
+  "info": {
+    "description": "searches for information about any anime on the humminbird.me website",
+    "author": "Zephy",
+    "version": "1.0.0",
+    "importance": "addon",
+    "name": "Anime searcher",
+    "moduleName": "anime"
+  },
+  "requiresDB": false,
+},
   category: "anime",
   description: "anime <anime> - Finds information about the anime",
   lastTime: 0,

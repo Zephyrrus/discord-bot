@@ -3,10 +3,10 @@ var uidFromMention = /<@([0-9]+)>/;
 module.exports = {
   lastTime: 0,
   cooldown: 5000,
-  description: "message <arguments> - I have no idea what this should do, maybe one day :3",
+  description: ["message add <message> - Adds a custom message to the database", "message remove <message> - Removes the message from the database", "message list - Lists every message from the database"],
   category: "personality",
   permission: {
-    group: ["dev", "messages"],
+    group: ["dev", "moderators"],
     onlyMonitored: true
   },
   action: function(args, e) {
