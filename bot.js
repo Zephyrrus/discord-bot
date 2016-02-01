@@ -531,20 +531,6 @@ var commands = {
           }
           recursiveSplitMessages(e, JSON.stringify(res), e.channelID);
         });
-      }else if(args[0] == "exists"){
-        var dbHandlerInstance = new databaseHandler(args[1]);
-        if(dbHandlerInstance.exists(commands[args[1]].properties.databaseStructure, [{"name": args[2], "equals": args[3]}])){
-
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "`true`"
-          });
-        }else{
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "`false`"
-          });
-        }
       }
     }
   },
