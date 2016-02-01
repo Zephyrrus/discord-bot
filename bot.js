@@ -5,8 +5,8 @@ var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
-/*var databaseHandler = require("./modules/database/databaseHandler.js");
-var dbHandlerInstance = new databaseHandler();*/
+var databaseHandler = require("./modules/database/databaseHandler.js");
+
 
 process.argv.forEach(function(val, index, array) {
   if (val === "development") MODE = "development";
@@ -430,7 +430,7 @@ var commands = {
   },
   debug: {
     category: "debug",
-    description: "N/A",
+    description: "debug",
     hidden: true,
     permission: {
       onlyMonitored: true
@@ -505,24 +505,41 @@ var commands = {
     }
   },
   database:{
-    category: "info",
-    description: "uptimes - shows the bot's current uptime",
+    category: "debug",
+    description: "database - YOU SHALL NOT TOUCH THIS COMMAND... SERIOUSLY",
     permission: {
       onlyMonitored: true
     },
     action: function(args, e) {
+      var databaseInsert = [{name: "reason", value: "test ban"}, {name: "uid", value: e.userID}, {name: "addedBy", value: e.userID}, {name: "addedDate", value: Date()}];
       var databaseStructure = [
               {name: "id", type: "autonumber", primaryKey: true},
-              {name: "uid", type: "number"},
+              {name: "uid", type: "number", required: true},
               {name: "reason", type: "string"},
               {name: "addedDate", type: "datetime"},
               {name: "addedBy", type: "number"}
-            ];
-      var databaseInsert = [{paramName: "id",  value:"0"}, {paramName: "kappa", value:"benobestmod"}];
-      dbHandlerInstance.add("testModule", databaseStructure, databaseInsert);
+      ];
+      if(args[0] == "createtable"){
+        var dbHandlerInstance = new databaseHandler(args[1]);
+        dbHandlerInstance.add(args[1], databaseStructure, databaseInsert, function(err, rest){
+            if(err != undefined){
+            e.bot.sendMessage({
+              to: e.channelID,
+              message: "```javascript\nSQLITE_RROR:\n" + JSON.stringify(err)+ "```"
+            });
+          }
+        });
+      }else if(args[0] == "dumptable"){
+        var dbHandlerInstance = new databaseHandler(args[1]);
+        dbHandlerInstance.find(args[1], function(err, res){
+          e.bot.sendMessage({
+            to: e.channelID,
+            message: "```javascript\nSQLITE_DUMP:\n" + JSON.stringify(res) + "```"
+          });
+        });
+
+      }
     }
-
-
   },
   //modules
   dance: require('./modules/module_personality.js').dance,
@@ -679,6 +696,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
 function parse(string) {
   var pieces = string.split(" ");
   pieces = pieces.filter(Boolean); // removes ""
+  if (pieces[0] === undefined) return null;
   if (pieces[0].toLowerCase() != config.listenTo) {
     return false
   }

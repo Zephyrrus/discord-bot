@@ -17,10 +17,10 @@ module.exports = {
       "requiresDB": true,
       "databaseStructure": [
         {name: "id", type: "autonumber", primaryKey: true},
-        {name: "uid", type: "number"},
+        {name: "uid", type: "number", required: true},
         {name: "reason", type: "string"},
-        {name: "addedDate", type: "datetime"},
-        {name: "addedBy", type: "number"}
+        {name: "addedDate", type: "datetime", required: true},
+        {name: "addedBy", type: "number", required: true}
       ]
     },
     category: "management",

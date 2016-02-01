@@ -5,5 +5,6 @@
 	"listenTo": "rin",
 	"allowNSFW": false,
 	"defaultStatus": "Being a lil cat <3",
-	"globalcooldown": 2000
+	"globalcooldown": 2000,
+	"themeSong": "https://www.youtube.com/watch?v=Vw32WZJSMU4"
 }

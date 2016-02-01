@@ -15,12 +15,11 @@ module.exports = {
   lastTime: 0,
   cooldown: 500,
   category: "misc",
-  description: ["flip <value 1|value 2|ect...> - Let the bot choose a random value", "flip boN <value 1|value 2|etc...> - Does the flip N times and get's shows the value with the highest score"],
+  description: ["flip <value 1|value 2|ect...> - Let the bot choose a random value", "flip boN <value 1|value 2|etc...> - Does the flip N times and shows the value with the highest score"],
   permission: {
     onlyMonitored: true
   },
   action: function(args, e) {
-    console.log(args);
     if (args[0].substring(0,2) == "bo") {
       var bestOfs = parseInt(args[0].substring(2));
       if(bestOfs == "NaN") bestOfs = 3;
