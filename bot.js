@@ -1,5 +1,5 @@
 /*Variable area*/
-var VERSION = "1.3.8 ~ Web branch";
+var VERSION = "1.4.1 ~ Web branch";
 var MODE = "production";
 var Discordbot = require('discord.io');
 var fs = require('fs');
@@ -438,24 +438,6 @@ var commands = {
     action: function(args, e) {
       if (args[0] == "module") {
         args.splice(0,1); // get rid of that shit in front of the module name
-        /*  "module": true,
-          "info": {
-            "description": "used for disable access of specific users to the bot.",
-            "author": "Zephy",
-            "version": "1.0.0",
-            "importance": "core",
-            "name": "Ban manager",
-            "moduleName": "ban"
-          },
-          "requiresDB": true,
-          "databaseStructure": {
-            "id": "autonumber",
-            "uid": "number",
-            "reason": "string",
-            "addedDate": "datetime",
-            "addedBy": "number"
-          }
-        },*/
         var result = "```\nListing information for module [" + args[0] +"]:\n";
         for (var cmd in commands) {
 
@@ -522,22 +504,47 @@ var commands = {
       if(args[0] == "createtable"){
         var dbHandlerInstance = new databaseHandler(args[1]);
         dbHandlerInstance.add(args[1], databaseStructure, databaseInsert, function(err, rest){
-            if(err != undefined){
-            e.bot.sendMessage({
-              to: e.channelID,
-              message: "```javascript\nSQLITE_RROR:\n" + JSON.stringify(err)+ "```"
-            });
+            if(err){
+              e.bot.sendMessage({
+                to: e.channelID,
+                message: "```javascript\nSQLITE_RROR:\n" + JSON.stringify(err)+ "```"
+              });
           }
         });
+
       }else if(args[0] == "dumptable"){
         var dbHandlerInstance = new databaseHandler(args[1]);
-        dbHandlerInstance.find(args[1], function(err, res){
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "```javascript\nSQLITE_DUMP:\n" + JSON.stringify(res) + "```"
-          });
+        dbHandlerInstance.list(function(err, res){
+          if(err){
+            recursiveSplitMessages(e, "ERRRRRRRR: " + JSON.stringify(err), e.channelID);
+            return;
+          }
+          recursiveSplitMessages(e, JSON.stringify(res), e.channelID);
         });
 
+      }else if(args[0] == "find"){
+        var dbHandlerInstance = new databaseHandler(args[1]);
+        dbHandlerInstance.find(commands['nightcore'].properties.databaseStructure, [{"name": args[2], "equals": args[3]}], function(err, res){
+          if(err){
+            recursiveSplitMessages(e, "ERRRRRRRR: ```" + JSON.stringify(err) + "```", e.channelID);
+            return;
+          }
+          recursiveSplitMessages(e, JSON.stringify(res), e.channelID);
+        });
+      }else if(args[0] == "exists"){
+        var dbHandlerInstance = new databaseHandler(args[1]);
+        if(dbHandlerInstance.exists(commands[args[1]].properties.databaseStructure, [{"name": args[2], "equals": args[3]}])){
+
+          e.bot.sendMessage({
+            to: e.channelID,
+            message: "`true`"
+          });
+        }else{
+          e.bot.sendMessage({
+            to: e.channelID,
+            message: "`false`"
+          });
+        }
       }
     }
   },

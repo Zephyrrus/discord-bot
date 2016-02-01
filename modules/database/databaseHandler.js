@@ -10,10 +10,12 @@ var logger = require("winston");
  * 5  - Database creation failed
  */
 
-function databaseHandler(moduleName) {
+//GET RID OF STRUCTURE AND MODULE NAME AND USE THIS.
+function databaseHandler(moduleName, structure) {
     this.databaseConInstance = new databaseCon();
-    this.databaseName = moduleName;
+    this.moduleName = moduleName;
     this.database = this.databaseConInstance.getDatabase();
+    this.structure = structure;
 }
 
 //Best comment ever, but I will understand what it does
@@ -38,9 +40,9 @@ databaseHandler.prototype.add = function(moduleName, structure, params, callback
     var requiredParamsSentCount = 0;
     var questionMarks = "";
     var paramsToInsert = "";
+    var self = this;
 
-    var database = this.database;
-    createTable(moduleName, structure, this.database, function(err, res){
+    createTable(self.moduleName, structure, this.database, function(err, res){
       if(err === null){
         // prepares the parameters based on the structure and removes parameters which are not defined in the structure
         // check if every REQUIRED parameter is sent
@@ -58,11 +60,11 @@ databaseHandler.prototype.add = function(moduleName, structure, params, callback
         }
 
 
-        if (receivedParams.length == 0) return callback(3, null); // this happens if no correct parametes were received
-        if (requiredParamsSentCount < requiredParamsCount) return callback(1, null); // you forgot to send several of the required parametes
+        if (receivedParams.length == 0) callback(3, null); // this happens if no correct parametes were received
+        if (requiredParamsSentCount < requiredParamsCount) callback(1, null); // you forgot to send several of the required parametes
 
         for (var i = 0; i < receivedParams.length; i++) {
-            receivedStructure.push(receivedParams[i]);
+            //receivedStructure.push(receivedParams[i]);
             if (i + 1 == receivedParams.length) {
                 questionMarks += "?";
                 paramsToInsert += receivedStructure[i].toString();
@@ -73,13 +75,14 @@ databaseHandler.prototype.add = function(moduleName, structure, params, callback
         }
 
 
-        logger.debug("[SQLITE]_DEBUG: INSERT INTO " + moduleName + "(" + paramsToInsert + ") VALUES (" + questionMarks + ")", receivedParams);
-        database.run("INSERT INTO " + moduleName + " (" + paramsToInsert + ") VALUES (" + questionMarks + ")", receivedParams, function(err) {
+        logger.debug("[SQLITE]_DEBUG: INSERT INTO " + self.moduleName + "(" + paramsToInsert + ") VALUES (" + questionMarks + ")", receivedParams);
+        database.run("INSERT INTO " + self.moduleName + " (" + paramsToInsert + ") VALUES (" + questionMarks + ")", receivedParams, function(err) {
             if(err != null){
               logger.error("[SQLITE_ERROR]_INSERT_PARAMS: " + err);
-              return callback({type: "SQLITEERROR", error: err}, null);
+              callback({type: "SQLITEERROR", error: err}, null);
+              return;
             }
-            return callback(null, null)
+            callback(null, null)
         });
       }else{
         return(5, null);
@@ -90,21 +93,85 @@ databaseHandler.prototype.add = function(moduleName, structure, params, callback
 
 }
 
-databaseHandler.prototype.remove = function(structure, params, condition) {
+databaseHandler.prototype.remove = function(structure, params, condition, callback) {
+  callback = callback || () => {};
 
 }
 
-databaseHandler.prototype.find = function(structure, /*params, condition, */ callback) {
+
+/* Object for condition has to be:
+  condition: [
+    {name: "rowname", condition: "" || equals: ""}
+  ]
+*/
+databaseHandler.prototype.find = function(structure, params, callback){
+  callback = callback || () => {};
+  receivedParams = [];
+  questionMarks = "";
+  paramsToSearch = [];
+  result = [];
+
+  for (var i = 0; i < structure.length; i++) {
+      for (var k = 0; k < params.length; k++) {
+          if (structure[i].name == params[k].name) {
+              receivedParams.push(params[k]);
+          }
+      }
+  }
+  if (receivedParams.length == 0) return (callback({type: "HANDLER_ERROR", error: "Invalid or no parameters defined"}, null)); // this happens if no correct parametes were received
+
+  for (var i = 0; i < receivedParams.length; i++) {
+      if (i + 1 == receivedParams.length) {
+          questionMarks += receivedParams[i].name + "=?";
+      } else {
+          questionMarks += receivedParams[i].name + "=? AND ";
+      }
+      paramsToSearch.push(receivedParams[i].equals.toString());
+  }
+
+  logger.debug("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch);
+  this.database.each("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch, function(err, row) {
+      if(err){
+        logger.error("[SQLITE_ERROR]_SELECT_WUERRY: " + err);
+        return (callback({type: "SQLITEERROR", error: err}, null));
+      }
+      result.push(row);
+  }, function (err, cntx) {
+      if (err) {
+        logger.error("[SQLITE_ERROR]_SELECT_WUERRY_END: " + err);
+        return (callback({type: "SQLITEERROR", error: err}, null));
+      }
+      return (callback(null, {count: cntx, result: result}));
+  });
+}
+
+
+databaseHandler.prototype.list = function(callback) {
     callback = callback || () => {};
     var result = [];
-    this.database.each("SELECT * FROM " + this.databaseName, function(err, row) {
-        return callback(null, row);
+    this.database.each("SELECT * FROM " + this.moduleName, function(err, row) {
+        if (err) {
+          logger.error("[SQLITE_ERROR]_LIST: " + err);
+          return (callback(err));
+        }
+        result.push(row);
+    }, function (err, cntx) {
+      if (err) {
+        logger.error("[SQLITE_ERROR]_LIST: " + err);
+        return (callback({type: "SQLITEERROR", error: err}, null));
+    }
+      return (callback(null, {count: cntx, result: result}));
     });
 }
 
 databaseHandler.prototype.customquerry = function(args) {
     var result = [];
     return result;
+}
+
+databaseHandler.prototype.dropTable = function(){
+
+
 }
 
 /*databaseHandler.prototype.createTable = function(moduleName, structure, callback) {
@@ -140,11 +207,11 @@ createTable = function(moduleName, structure, database, callback) {
     database.run("CREATE TABLE if not exists " + moduleName + " ("+ names + ")", function(err) {
         if (err != null) {
           logger.error("[SQLITE_ERROR]_CREATE_TABLE: " + err);
-          return callback(err, null);
+          callback(err, null);
         }
-        else return callback(null, null);
+        else callback(null, null);
     });
-    //return callback(null, null);
+    //callback(null, null);
 }
 
 getType = function(typeName) {
@@ -163,6 +230,11 @@ getType = function(typeName) {
             return undefined;
             break;
     }
+}
+
+validateParameters = function(structure, params, callback){
+  callback = callback || () => {};
+
 }
 
 module.exports = databaseHandler;

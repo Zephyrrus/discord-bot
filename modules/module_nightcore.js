@@ -1,6 +1,15 @@
+var databaseStructure = [
+    {name: "id", type: "autonumber", primaryKey: true},
+    {name: "youtubeid", type: "string", required: true, unique: true},
+    {name: "title", type: "string"},
+    {name: "addedDate", type: "datetime", required: true},
+    {name: "addedBy", type: "number", required: true},
+    {name: "tags", type: "string"}
+];
 var uidFromMention = /<@([0-9]+)>/;
 var youtubeModule = require("./module_youtube.js");
 var utils = require("./utils.js");
+var database = new (require("./database/databaseHandler.js"))('nightcore', databaseStructure);
 
 module.exports = {
   properties: {
@@ -8,20 +17,13 @@ module.exports = {
     "info": {
       "description": "nightcore dispenser module",
       "author": "Zephy",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "importance": "addon",
       "name": "Nightcore dispenser",
       "moduleName": "nightcore"
     },
     "requiresDB": true,
-    "databaseStructure": {
-      "id": "autonumber",
-      "youtubeid": "string",
-      "title": "string",
-      "addedOn": "datetime",
-      "addedBy": "number",
-      "tags": "string"
-    }
+    databaseStructure: databaseStructure,
   },
   lastTime: 0,
   cooldown: 0,
@@ -53,7 +55,6 @@ module.exports = {
           }, function(error, response) {
             youtubeModule.gettitlefromid(youtubeID, function(resp) {
               if (resp != undefined) {
-                //e.db.nightcores['id'].push(args[1]);
                 e.db.nightcores[youtubeID.toString()] = JSON.parse("{\"title\":\"" + resp.title + "\",\"addedBy\":\"" + e.userID + "\",\"addedOn\":\"" + Date() + "\",\"tags\":" + JSON.stringify(resp.tags || ["null"]) + "}");
                 e.bot.editMessage({
                   channel: response.channel_id,
