@@ -1,4 +1,3 @@
-var fs = require('fs');
 var http = require('follow-redirects').https;
 if (GLOBAL.MODE === "production") {
   var auth = require('../configs/auth.json'); // or remove ./ for absolute path ^_^
