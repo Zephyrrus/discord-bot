@@ -1,4 +1,7 @@
 var uidFromMention = /<@([0-9]+)>/;
+var parser = require("./reminderParser.js");
+var reminderFromString = /[^;%$\|]*/
+
 module.exports = {
   properties: {
     "module": true,
@@ -15,45 +18,38 @@ module.exports = {
   lastTime: 0,
   cooldown: 500,
   category: "misc",
-  description: "remind <seconds> <data> - Will remind you in <seconds> about <data>",
+  description: "remind <time> <data> - Will remind you in <time> about <data>",
   permission: {
     onlyMonitored: true
   },
   action: function(args, e) {
-    if (args.length >= 2) {
-      /*if(hmsToSecondsOnly(parseInt(args[0])) instanceof Array int){
-      	e.bot.sendMessage({
-      		to: e.channelID,
-      		message: "Usage: \nremind <seconds> <data> - Will remind you in <seconds> about <data>"
-      	});
-      	return;
-      }*/
-      var timeout = hmsArgumentParser(args[0]);
-
-      var reminder = "";
-      for (i = 1; i < args.length; i++)
-        reminder += args[i] + " ";
-      reminder = reminder.substring(0, reminder.length - 1);
-
-      setTimeout(function() {
+      var joinedArguments = args.join(" ");
+      var reminder = reminderFromString.exec(joinedArguments)[0];
+      var split = [reminder, joinedArguments.substring(reminder.length+1)];
+      console.log(split);
+      if(split[0] == "" || split[1] == ""){
         e.bot.sendMessage({
           to: e.channelID,
-          message: "<@" + e.userID + "> **Reminder**\n```" + reminder + "```"
+          message: "<@" + e.userID + "> Missing time variable or message to remind you about\n**Usage**: \nremind <time> [separator] <message> - Will remind you in x about <message>\nAny of the following characters can be used as a separator: **;%$|**"
         });
-      }, timeout * 1000);
-    }
+        return;
+      }
+      //userToRemind, addedTume, expireTime, reminded
+      //if relative < 30.000 push to a local stack, otherwise push into the database
+      //console.log(parsedTimeTemp.absolute);
+
+      var parsedTimeTemp = parser(split[0]);
+      if(parsedTimeTemp.mode != 'error'){
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> I will remind you about `" + split[1] + "` in **" + split[0] + "**"
+        });
+        setTimeout(function() {
+          e.bot.sendMessage({
+            to: e.channelID,
+            message: "Hey <@" + e.userID + ">!\nYou told me to remind you about `" + split[1] + "` " + split[0] + " ago"
+          });
+        }, parsedTimeTemp.relative);
+      }
   }
-}
-
-function hmsArgumentParser(str) {
-  var p = str.split(':'),
-    s = 0,
-    m = 1;
-
-  while (p.length > 0) {
-    s += m * parseInt(p.pop(), 10);
-    m *= 60;
-  }
-
-  return s;
 }
