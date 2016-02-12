@@ -65,7 +65,9 @@ function randomInt(low, high) {
 
 function doReddit(args, e) {
   var arguments = args;
-  getSubreddit(arguments, e.config.allowNSFW, function(response) {
+  var nsfw = e.db.nsfwChannels.indexOf(e.channelID) > -1 ? true : false;
+
+  getSubreddit(arguments, nsfw, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
       messageID: e.rawEvent.d.id
@@ -86,7 +88,6 @@ function doReddit(args, e) {
             e.bot.sendMessage({
               to: e.channelID,
               message: "<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764",
-              //typing: true
             }, function(err, response) {
               e.bot.uploadFile({
                 to: e.channelID,
