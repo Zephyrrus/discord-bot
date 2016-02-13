@@ -37,7 +37,6 @@ module.exports = {
     var regex = new RegExp("^[a-zA-Z0-9\-\_]+$");
     //console.log(args[0]);
     if (args[0] === "add") {
-      var alreadyExists = false;
       if (args[1] == undefined || args[1].length != 11) {
         e.bot.sendMessage({
           to: e.channelID,

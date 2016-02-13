@@ -1,14 +1,13 @@
 /*Variable area*/
-var VERSION = "1.4.1 ~ Web branch";
+const VERSION = require("./package.json").version;
+const BRANCH = "Database branch";
 var MODE = "production";
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
-var databaseHandler = require("./modules/database/databaseHandler.js");
 
-
-process.argv.forEach(function(val, index, array) {
+process.argv.forEach(function (val, index, array) {
   if (val === "development") MODE = "development";
 });
 
@@ -31,7 +30,7 @@ var bot = new Discordbot({
   autorun: true
 });
 var startTime = Math.round(new Date() / 1000);
-var personalRoom = 133337987520921600;
+var startTimeMs = new Date();
 var uidFromMention = /<@([0-9]+)>/;
 
 var database = new(require("./database.js"))();
@@ -39,26 +38,40 @@ var away = [];
 
 ////
 var webConnecter = require("./modules/web/webModule.js");
+////
+/*var myCustomLevels = {
+   levels: {
+     message: 4,
+     discordpm: 4
+   },
+   colors: {
+     message: 'cyan',
+     discordpm: 'yellow'
+   }
+ };*/
+//logger.addColors(myCustomLevels.colors);
+logger.remove(logger.transports.Console);
+logger.add(logger.transports.Console, {
+  colorize: true
+});
+logger.level = 'debug';
 /*----------------------------------------------*/
 /*Event area*/
-bot.on("err", function(error) {
+bot.on("err", function (error) {
   logger.error(error)
 });
 
-bot.on("ready", function(rawEvent) {
-  // console.log(config);
-  //load loger
-  logger.remove(logger.transports.Console);
-  logger.add(logger.transports.Console, {
-    colorize: true
-  });
-  logger.level = 'debug';
-  //load bot
+bot.on("ready", function (rawEvent) {
+  if (!fs.existsSync("./modules/cache")){
+    fs.mkdirSync("./modules/cache");
+  }
   if (MODE == "development") {
+    logger.info("Sending log in information to discord.");
     bot.editUserInfo({
       password: auth.discord.password, //Required
       username: config.username //Optional
     });
+    //commands['waifu'] = require("./modules/waifu/module_waifu.js");
   }
   logger.info("Connected!");
   logger.info("Logged in as: ");
@@ -68,7 +81,7 @@ bot.on("ready", function(rawEvent) {
     idle_since: null,
     game: config.defaultStatus
   });
-  logger.info("Version: " + VERSION);
+  logger.info("Version: " + VERSION + " ~ " + BRANCH);
   logger.info("Set status!");
   var web = webConnecter({
     "bot": bot,
@@ -81,6 +94,8 @@ bot.on("ready", function(rawEvent) {
       "nsfwFilter": config.allowNSFW
     }
   }, bot);
+  var startupTime = Math.round((new Date()).getTime() - startTimeMs);
+  logger.info(`It took ${startupTime} ms to initialize the bot.`)
 });
 
 /*----------------------------------------------*/
@@ -94,18 +109,18 @@ var commands = {
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
-    action: function(args, e) {
+    action: function (args, e) {
       var delayStart = new Date().getTime();
       e.bot.sendMessage({
         to: e.channelID,
         message: "<@" + e.userID + "> Pong"
-      }, function(error, response) {
+      }, function (error, response) {
         var delay = Math.round((new Date()).getTime() - delayStart);
         bot.editMessage({
           channel: response.channel_id,
           messageID: response.id,
           message: "<@" + e.userID + "> Pong\nNetwork delay: **" + delay + "** ms"
-        }, function(error, response) {
+        }, function (error, response) {
           //console.log(response);
         });
       });
@@ -119,7 +134,7 @@ var commands = {
       onlyMonitored: true,
       group: ['dev', 'waifu'],
     },
-    action: function(args, e) {
+    action: function (args, e) {
       e.bot.setPresence({
         idle_since: null,
         game: args.join(" ")
@@ -132,7 +147,7 @@ var commands = {
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       if (args[0])
         if (args[0].toLowerCase() == "channel") {
           sendMessages(e, ["The ID of this channel is `" + e.channelID + "`"]);
@@ -144,7 +159,7 @@ var commands = {
       } else if (args[0].indexOf("<@") > -1 && args[0].indexOf(">") > -1) {
         e.bot.sendMessage({
           to: e.channelID,
-          message: args[0] + "`" + args[0].substring(2, args[0].length - 1) + "`"
+          message: args[0] + " `" + args[0].substring(2, args[0].length - 1) + "`"
         });
       } else {
         sendMessages(e, ["<@" + e.userID + ">: **Your ID**: `@" + e.userID + "`"]);
@@ -159,7 +174,7 @@ var commands = {
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
-    action: function(args, e) {
+    action: function (args, e) {
       if (!args[0]) {
         return;
       }
@@ -183,12 +198,12 @@ var commands = {
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
-    action: function(args, e) {
+    action: function (args, e) {
       sendMessages(e, ["**Guide from** <@132130219631837184> **to run a bat.**"]);
       bot.uploadFile({
         to: e.channelID,
         file: fs.createReadStream("images/giphy.gif")
-      }, function(error, response) {
+      }, function (error, response) {
 
       });
     }
@@ -201,7 +216,7 @@ var commands = {
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
-    action: function(args, e) {
+    action: function (args, e) {
       if (!args[0]) {
         return;
       }
@@ -227,8 +242,7 @@ var commands = {
     },
     cooldown: config.globalcooldown,
     lastTime: 0,
-    action: function(args, e) {
-      //sendMessages(e, ["**Commands I know: **", "```reddit/subreddit <arguments> - posts a random image from /hot of that subreddit\n9gag - gets a random post from 9GAG\nkitten <me> -  you know what this does ^_^\nnightcore - selects a random nightcore from the database\nnightcore add <youtubeid> - add a new nightcore to the database (please don't troll, no checks in place for now, but every add is logged and who abuses it will be banned from rin)\nnightcore count - counts how many nightcores are in the database right now\nnightcore list - lists the id of every nightcore from the database\nid - returns the id of the channel\njson - returns a formated json of your message\nbat - how to run a bat file if you don't know\nemote <argument> - posts an emote\nhelp - shows this silly\nI know a lot more commands but my developer is a lazyass and didn't add them there yet.```"]);
+    action: function (args, e) {
       var userInGroups = [];
       for (var grp in e.db.groups) {
         if (e.db.groups[grp].indexOf(e.userID) > -1) {
@@ -299,7 +313,7 @@ var commands = {
         to: e.channelID,
         message: "Please check your private messages for the commands."
       })
-      recursiveSplitMessages(e, helpMessage, e.userID);
+      recursiveSplitMessages(e, e.userID, helpMessage);
       /*e.bot.sendMessage({
         to: e.userID,
         message: helpMessage + "```\nThere might be some more commands. Either I forgot to add them to this list, or they require certain permissions."
@@ -315,7 +329,7 @@ var commands = {
       group: ["dev"],
       onlyMonitored: false
     },
-    action: function(args, e) {
+    action: function (args, e) {
       if (e.db.channels.indexOf(e.channelID) != -1) {
         e.bot.sendMessage({
           to: e.channelID,
@@ -347,7 +361,7 @@ var commands = {
       group: ["dev"],
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       if (e.db.channels.indexOf(e.channelID) == -1) {
         return;
       }
@@ -367,7 +381,7 @@ var commands = {
       group: ["dev"],
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       sendMessages(e, ["```" + JSON.stringify(e.rawEvent, null, '\t').replace(/`/g, '\u200B`') + "```"]);
     }
   },
@@ -379,18 +393,22 @@ var commands = {
       group: ["waifu"],
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       sendMessages(e, ["<@" + e.userID + "> \u2764 I love you"]);
     }
   },
   waifu: {
-    category: "misc",
-    description: "waifu - who is the bot's waifu",
+    category: "entertainment",
+    description: "waifu me - gives you a random waifu",
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e) {
-      sendMessages(e, ["My waifu is Benolot \u2764"]);
+    helper: require("./modules/waifu/module_waifu.js"),
+    action: function (args, e) {
+      if(e.userID == "108272892197806080") sendMessages(e, ["I am your waifu \u2764"]);
+      else {
+        this.helper.action(args, e);
+      }
       var random = Math.floor(Math.random() * (50 - 1) + 1);;
       if (random % 5 == 0) {
         sendMessages(e, ["Do you want to make a contract ? ／人◕ ‿‿ ◕人＼"]);
@@ -405,13 +423,22 @@ var commands = {
       group: ["dev"],
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
       if (args[0].toLowerCase() == "zombie") {
-        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=neQY2fXqBLM :3"]);
+        sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "\n**My current branch is: **" + BRANCH + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please \"http://youtube.com/watch?v=neQY2fXqBLM\" :3"]);
         return;
       }
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "**\nI been awake since **" + tm(startTime) + "**\nI am in **" + MODE + "** mode right now.\nMy current uptime is: **" + getUptimeString() + "**\nThe global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\nZephy is the best developer and I am the best catgirl \u2764\n*whispers* Reddit adult mode filtering is right now set to: **" + !config.allowNSFW + "** (no NSFW if this is true)\nListen to my theme song please https://www.youtube.com/watch?v=464GdAc1vmc :3"]);
+      var nsfw = database.nsfwChannels.indexOf(e.channelID) > -1 ? true : false;
+      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "\n**\
+My current branch is: **" + BRANCH + "**\n\
+I been awake since **" + tm(startTime) + "**\n\
+I am in **" + MODE + "** mode right now.\n\
+My current uptime is: **" + getUptimeString() + "**\n\
+The global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\n\
+Zephy is the best developer and I am the best catgirl \u2764\n\
+*whispers* Reddit adult mode filtering is right now set to : **" + !nsfw + "** in this channel (no NSFW if this is true)\n\
+Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
     }
   },
   uptime: {
@@ -420,7 +447,7 @@ var commands = {
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       var t = Math.floor((((new Date()).getTime() / 1000) - startTime));
       e.bot.sendMessage({
         to: e.channelID,
@@ -428,21 +455,35 @@ var commands = {
       });
     }
   },
-  debug: {
-    category: "debug",
-    description: "debug",
-    hidden: true,
+  channels: {
+    category: "info",
+    description: "channels - shows the channels in which the bot is",
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e) {
-      if (args[0] == "module") {
-        args.splice(0,1); // get rid of that shit in front of the module name
-        var result = "```\nListing information for module [" + args[0] +"]:\n";
+    action: function (args, e) {
+      var result = "**Channels where I am right now:** [Count: **"+database.channels.length +"**]\n```\n"
+      for (var i=0; i < database.channels.length; i++){
+        result += (i+1 == database.channels.length ? database.channels[i] : database.channels[i] + ",");
+      }
+      result += "```";
+      recursiveSplitMessages(e, e.userID, result);
+    }
+  },
+  module: {
+    category: "info",
+    description: ["module - lists every loaded module", "module <moduleName> - shows info about the module with that name (if it exists and is loaded)"],
+    permission: {
+      onlyMonitored: true
+    },
+    action: function (args, e) {
+      if (args[0] != '') {
+        //args.splice(0, 1); // get rid of that shit in front of the module name
+        var result = "```\nListing information for module [" + args[0] + "]:\n";
         for (var cmd in commands) {
 
-          if(commands[cmd].properties != undefined && commands[cmd].properties.info != undefined){
-            if(commands[cmd].properties.info.moduleName == args[0]){
+          if (commands[cmd].properties != undefined && commands[cmd].properties.info != undefined) {
+            if (commands[cmd].properties.info.moduleName == args[0]) {
               result += "\tModule info: \n"
               result += "\t\tModule name: " + (commands[cmd].properties.info.name || "N/A") + "\n";
               result += "\t\tModule description: " + (commands[cmd].properties.info.description || "N/A") + "\n";
@@ -451,13 +492,13 @@ var commands = {
               result += "\t\tModule author: " + (commands[cmd].properties.info.author || "N/A") + "\n";
               result += "\t\tModule moduleName: " + (commands[cmd].properties.info.moduleName || "N/A") + "\n";
               result += "\tRequires database: " + (commands[cmd].properties.requiresDB || "False") + "\n"
-              if(commands[cmd].properties.requiresDB != undefined && commands[cmd].properties.requiresDB == true){
+              if (commands[cmd].properties.requiresDB != undefined && commands[cmd].properties.requiresDB == true) {
                 result += "\tDatabase structure: \n"
-                if(commands[cmd].properties != undefined){
+                if (commands[cmd].properties != undefined) {
                   for (var fieldName in commands[cmd].properties.databaseStructure) {
                     result += "\t\t" + fieldName + ":" + JSON.stringify(commands[cmd].properties.databaseStructure[fieldName.toString()]) + "\n";
                   }
-                }else{
+                } else {
                   result += "\t\tWarning: This module has the requiredDB flag set to true but no database structure is defined.\n"
                 }
               }
@@ -469,7 +510,8 @@ var commands = {
             }
           }
         }
-      } else {
+        return;
+      }
         var result = "```\nCurrently loaded modules:\n";
         for (var cmd in commands) {
           if (commands[cmd]) {
@@ -483,59 +525,97 @@ var commands = {
           to: e.channelID,
           message: result
         });
-      }
+
     }
   },
-  database:{
+  database: {
     category: "debug",
     description: "database - YOU SHALL NOT TOUCH THIS COMMAND... SERIOUSLY",
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e) {
-      var databaseInsert = [{name: "reason", value: "test ban"}, {name: "uid", value: e.userID}, {name: "addedBy", value: e.userID}, {name: "addedDate", value: Date()}];
+    action: function (args, e) {
+
       var databaseStructure = [
-              {name: "id", type: "autonumber", primaryKey: true},
-              {name: "uid", type: "number", required: true},
-              {name: "reason", type: "string"},
-              {name: "addedDate", type: "datetime"},
-              {name: "addedBy", type: "number"}
+        { name: "id", type: "autonumber", primaryKey: true },
+        { name: "youtubeID", type: "string", required: true, unique: true },
+        { name: "title", type: "string" },
+        { name: "addedDate", type: "datetime", required: true },
+        { name: "addedBy", type: "number", required: true },
+        { name: "tags", type: "string" }
       ];
-      if(args[0] == "createtable"){
+      if (args[0] == "dumptable") {
         var dbHandlerInstance = new databaseHandler(args[1]);
-        dbHandlerInstance.add(args[1], databaseStructure, databaseInsert, function(err, rest){
-            if(err){
-              e.bot.sendMessage({
-                to: e.channelID,
-                message: "```javascript\nSQLITE_RROR:\n" + JSON.stringify(err)+ "```"
-              });
-          }
-        });
-
-      }else if(args[0] == "dumptable"){
-        var dbHandlerInstance = new databaseHandler(args[1]);
-        dbHandlerInstance.list(function(err, res){
-          if(err){
-            recursiveSplitMessages(e, "ERRRRRRRR: " + JSON.stringify(err), e.channelID);
+        dbHandlerInstance.list(function (err, res) {
+          if (err) {
+            recursiveSplitMessages(e, e.channelID, "ERRRRRRRR: " + JSON.stringify(err, null, '\t'));
             return;
           }
-          recursiveSplitMessages(e, JSON.stringify(res), e.channelID);
+          recursiveSplitMessages(e, e.channelID, JSON.stringify(res, null, '\t'));
         });
 
-      }else if(args[0] == "find"){
+      } else if (args[0] == "find") {
         var dbHandlerInstance = new databaseHandler(args[1]);
-        dbHandlerInstance.find(commands['nightcore'].properties.databaseStructure, [{"name": args[2], "equals": args[3]}], function(err, res){
-          if(err){
-            recursiveSplitMessages(e, "ERRRRRRRR: ```" + JSON.stringify(err) + "```", e.channelID);
+        dbHandlerInstance.find(commands['nightcore'].properties.databaseStructure, [{ "name": args[2], "equals": args[3] }], function (err, res) {
+          if (err) {
+            recursiveSplitMessages(e, e.channelID, "ERRRRRRRR: " + JSON.stringify(err, null, '\t'));
             return;
           }
-          recursiveSplitMessages(e, JSON.stringify(res), e.channelID);
+          recursiveSplitMessages(e, e.channelID, JSON.stringify(res, null, '\t'));
         });
+      } else if(args[0]=="migrate"){
+        /*var database = new(require("./modules/database/databaseHandler.js"))('nightcore', databaseStructure);
+        var count = 0;
+        for (var child in e.db.nightcores) {
+          database.add([{ "youtubeID": child }, { "title": e.db.nightcores[child].title }, { "addedDate": e.db.nightcores[child].addedBy }, { "addedBy": e.db.nightcores[child].addedBy }, {"tags": e.db.nightcores[child].tags}], function (err, res) {
+            if (err) return (logger.error(err));
+            count++;
+          });
+          count++;
+        }
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: `<@${e.userID}> Finished migrating ${count} element from the **${args[1]}** database `
+        });*/
+      }else {
+        recursiveSplitMessages(e, e.channelID, "ERRRRRRRR: " + JSON.stringify(e.rawEvent, null, '\t'));
       }
+    }
+  },
+  avatar: {
+    category: "misc",
+    description: "avatar - shows your avatar",
+    permission: {
+      onlyMonitored: true
+    },
+    action: function(args, e){
+      if (!uidFromMention.test(args[0])) {
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: `<@${e.userID}> This is your current avatar:\nhttps://cdn.discordapp.com/avatars/${e.userID}/${e.rawEvent.d.author.avatar}.jpg`
+        });
+        return;
+      }
+
+      try{
+        var mentionedUser = uidFromMention.exec(args[0])[1];
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: `<@${e.userID}> This is the mentioned user's current avatar:\nhttps://cdn.discordapp.com/avatars/${mentionedUser}/${e.rawEvent.d.mentions[0].avatar}.jpg`
+        });
+      /*  e.bot.sendMessage({
+          to: e.channelID,
+          message: `Assuming ${args.name} reffers to ${path.replace(/\//g, '').replace(/\+/g, ' ')}`
+        })*/
+      }catch(e){
+
+      }
+      return;
     }
   },
   //modules
   dance: require('./modules/module_personality.js').dance,
+  slap: require('./modules/module_personality.js').slap,
   group: require("./modules/module_group.js"),
   greet: require("./modules/module_greetings.js"),
   message: require("./modules/module_message.js"),
@@ -549,20 +629,29 @@ var commands = {
   decode: require("./modules/module_hashing.js").decode,
   admin: require("./modules/module_banning.js").ban,
   flip: require("./modules/module_flip.js"),
-  remind: require("./modules/module_reminder.js")
+  remind: require("./modules/module_reminder.js"),
+  convert: require("./modules/module_baseconvert.js"),
+  password: require('./modules/module_grabpassword.js'),
+  leet: require('./modules/module_leet.js'),
+  "8ball": require("./modules/module_personality.js").ball,
+  bomb: require("./modules/module_bomb.js"),
+  size: require("./modules/module_fun.js").size,
+  zero: require("./modules/module_zero.js")
+  /*kill: require("./modules/module_personality.js").kill,
+  anagram: require("./modules/module_personality.js").anagram,*/
 }
 
 bot.on('message', processMessage);
 
-bot.on("presence", function(user, userID, status, rawEvent) {
+bot.on("presence", function (user, userID, status, rawEvent) {
   /*console.log(user + " is now: " + status);*/
 });
 
-bot.on("debug", function(rawEvent) {
+bot.on("debug", function (rawEvent) {
   //console.log(rawEvent) //Logs every event
 });
 
-bot.on("disconnected", function() {
+bot.on("disconnected", function () {
   logger.error("Bot disconnected");
   bot.connect(); //Auto reconnect
 });
@@ -571,19 +660,19 @@ bot.on("disconnected", function() {
 function sendMessages(e, messageArr, interval) {
   var callback, resArr = [],
     len = messageArr.length;
-  typeof(arguments[2]) === 'function' ? callback = arguments[2]: callback = arguments[3];
-  if (typeof(interval) !== 'number') interval = 1000;
+  typeof (arguments[2]) === 'function' ? callback = arguments[2]: callback = arguments[3];
+  if (typeof (interval) !== 'number') interval = 1000;
 
   function _sendMessages() {
-    setTimeout(function() {
+    setTimeout(function () {
       if (messageArr[0]) {
         e.bot.sendMessage({
           to: e.channelID,
           message: messageArr.shift()
-        }, function(err, res) {
+        }, function (err, res) {
           resArr.push(res);
           if (resArr.length === len)
-            if (typeof(callback) === 'function') callback(resArr);
+            if (typeof (callback) === 'function') callback(resArr);
         });
         _sendMessages();
       }
@@ -594,29 +683,30 @@ function sendMessages(e, messageArr, interval) {
 
 function download(url, dest, cb) {
   var file = fs.createWriteStream(dest);
-  var request = http.get(url, function(response) {
+  var request = http.get(url, function (response) {
     response.pipe(file);
-    file.on('finish', function() {
+    file.on('finish', function () {
       file.close(cb); // close() is async, call cb after close completes.
     });
-  }).on('error', function(err) { // Handle errors
+  }).on('error', function (err) { // Handle errors
     fs.unlink(dest); // Delete the file async. (But we don't check the result)
     if (cb) cb(err.message);
   });
 };
 
+
 function processMessage(user, userID, channelID, message, rawEvent) {
   if (bot.serverFromChannel(channelID) == undefined) {
-    logger.debug("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+    logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
 
   } else {
-    logger.debug("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+    logger.verbose("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, '') + (rawEvent.d.attachments[0] !== undefined ? "[attachments: " + rawEvent.d.attachments[0].url + " ]":""));
   }
   if (userID == bot.id) {
     return;
   }
 
-  var parsed = parse(message);
+  var parsed = parse(message, channelID);
   if (!parsed) {
     //console.log("Not a command");
     return;
@@ -643,55 +733,68 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     return;
   }
 
-  if (!canUserRun(parsed.command, userID, channelID)) {
-    logger.info("User " + userID + " cant run this command");
-    return;
-  }
+  executeCommand(parsed.command, userID, channelID, function (err, res) {
+    if (err) {
+      logger.debug(err.error);
+      logCommand(channelID, user, parsed.command, parsed.arguments, err.error);
+      return;
+    }
 
-  if (commands[parsed.command]) {
-    if (commands[parsed.command].cooldown) {
-      if ((new Date()).getTime() - commands[parsed.command].lastTime < commands[parsed.command].cooldown) {
+    if (commands[parsed.command]) {
+      if (commands[parsed.command].cooldown) {
+        if ((new Date()).getTime() - commands[parsed.command].lastTime < commands[parsed.command].cooldown) {
+          bot.sendMessage({
+            to: channelID,
+            message: "<@" + userID + "> you are doing that too fast!"
+          });
+          bot.deleteMessage({
+            channel: channelID,
+            messageID: rawEvent.d.id
+          });
+          return;
+        }
+      }
+
+      if (!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
+      logger.error(`>>> Line 758, UGLY FIX STILL IN PLACE. FIXFIXFIXFIX`)
+      commands[parsed.command].action(parsed.args, {
+        "user": user,
+        "userID": userID,
+        "channelID": channelID,
+        "rawEvent": rawEvent,
+        "bot": bot,
+        "db": database,
+        "config": config, //,
+        "logger": logger,
+        "printError": printError,
+        "logCommand": logCommand,
+        "recursiveSplitMessages": recursiveSplitMessages
+          //"auth": auth
+      });
+      commands[parsed.command].lastTime = (new Date()).getTime();
+      logCommand(channelID, user, parsed.command, parsed.args);
+    } else {
+      if (database.messages[parsed.command]) {
         bot.sendMessage({
           to: channelID,
-          message: "<@" + userID + "> you are doing that too fast!"
-        });
-        bot.deleteMessage({
-          channel: channelID,
-          messageID: rawEvent.d.id
+          message: database.messages[parsed.command]
         });
         return;
       }
     }
-    if (!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
-    commands[parsed.command].action(parsed.args, {
-      "user": user,
-      "userID": userID,
-      "channelID": channelID,
-      "rawEvent": rawEvent,
-      "bot": bot,
-      "db": database,
-      "config": config, //,
-      "logger": logger
-        //"auth": auth
-    });
-    commands[parsed.command].lastTime = (new Date()).getTime();
-  } else {
-    if (database.messages[parsed.command]) {
-      bot.sendMessage({
-        to: channelID,
-        message: database.messages[parsed.command]
-      });
-      return;
-    }
-  }
+  });
 }
 
-function parse(string) {
+function parse(string, channelID) {
   var pieces = string.split(" ");
   pieces = pieces.filter(Boolean); // removes ""
   if (pieces[0] === undefined) return null;
-  if (pieces[0].toLowerCase() != config.listenTo) {
+  var isPM = bot.serverFromChannel(channelID);
+  if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && pieces[0].toLowerCase() != config.listenTo && isPM != undefined) {
     return false
+  }
+  if(isPM == undefined && pieces[0].toLowerCase() != config.listenTo){
+    pieces.unshift(" ");
   }
   if (pieces[1] === undefined) return null;
   if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
@@ -702,68 +805,76 @@ function parse(string) {
   };
 }
 
-function canUserRun(command, uid, channelID) {
-  if (database.bans[uid]) {
-    bot.sendMessage({
-      to: uid,
-      message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message Zephy"
-    });
 
-    return false;
-  }
-  if (!commands[command]) {
-    if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-      logger.info("User can't run the previous command because I am not listening in this channel.");
-      return false;
+function executeCommand(command, uid, channelID, callback) {
+  var banChecker = require("./modules/module_banning.js").isBanned;
+  //var delayStart = new Date().getTime();
+
+  banChecker(uid, function (result) {
+    /*  var delay = Math.round((new Date()).getTime() - delayStart);
+      bot.sendMessage({
+        to: channelID,
+        message: "Delay caused by SQL is: " + delay
+      });*/
+    if (result) {
+      bot.sendMessage({
+        to: uid,
+        message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@"+ config.general.masterID + ">"
+      });
+      return (callback && callback({ error: "User can't run the previous command because he is banned." }, false));
     }
-    if (database.messages[command]) {
-      return true;
+
+
+    if (!commands[command]) {
+      if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
+        return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
+      }
+      if (database.messages[command]) {
+        return (callback && callback(null, true));
+      }
+      if (database.images[command]) {
+        return (callback && callback(null, true));
+      }
+      return (callback && callback({ error: "User can't run the previous command because I don't know it." }, false));
     }
-    if (database.images[command]) {
-      return true;
-    }
-    logger.info("User can't run the previous command because I don't know it");
-    return false;
-  }
 
 
-  if (!commands[command].permission) {
-    if (database.channels.indexOf(channelID) != -1) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+    if (!commands[command].permission) {
 
-  if (commands[command].permission.onlyMonitored) {
-    if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-      logger.info("User can't run the previous command because this command can be used only in channels what I monitor");
-      return false;
-    }
-  }
-
-  if (!commands[command].permission.uid && !commands[command].permission.group) {
-    return true;
-  }
-
-  if (commands[command].permission.uid) {
-    for (var i = 0; i < commands[command].permission.uid.length; i++) {
-      if (uid == commands[command].permission.uid[i]) {
-        return true;
+      if (database.channels.indexOf(channelID) != -1) {
+        return (callback && callback(null, true));
+      } else {
+        return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
       }
     }
-  }
 
-  if (commands[command].permission.group) {
-    for (var i = 0; i < commands[command].permission.group.length; i++) {
-      if (database.isUserInGroup(uid, commands[command].permission.group[i])) {
-        return true;
+    if (commands[command].permission.onlyMonitored) {
+      if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
+        return (callback && callback({ error: "User can't run the previous command because this command can be used only in channels what I monitor" }, false));
       }
     }
-  }
 
+    if (!commands[command].permission.uid && !commands[command].permission.group) {
+      return (callback && callback(null, true));
+    }
 
-  return false;
+    if (commands[command].permission.uid) {
+      for (var i = 0; i < commands[command].permission.uid.length; i++) {
+        if (uid == commands[command].permission.uid[i]) {
+          return (callback && callback(null, true));
+        }
+      }
+    }
+
+    if (commands[command].permission.group) {
+      for (var i = 0; i < commands[command].permission.group.length; i++) {
+        if (database.isUserInGroup(uid, commands[command].permission.group[i])) {
+          return (callback && callback(null, true));
+        }
+      }
+    }
+    return (callback && callback({ error: "User can't run the command because it has no permission or idk" }, false));
+  });
 }
 
 function tm(unix_tm) {
@@ -825,7 +936,7 @@ function convertMS(ms) {
  * @lastLength - the lastLength of the message sent previously
  */
 
-function recursiveSplitMessages(e, msg, channelID, counter, lastLength) {
+function recursiveSplitMessages(e, channelID, msg, counter, lastLength) {
   counter = counter || 1;
   var maxUncalculatedLength = 1900;
   var total = Math.ceil(msg.length / maxUncalculatedLength);
@@ -837,9 +948,40 @@ function recursiveSplitMessages(e, msg, channelID, counter, lastLength) {
   e.bot.sendMessage({
     to: channelID,
     message: currentSplice
-  }, function(resp) {
+  }, function (err, resp) {
     if (counter < total) {
-      recursiveSplitMessages(e, msg, channelID, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
+      recursiveSplitMessages(e, channelID, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
     }
   });
+}
+
+function logCommand(channelID, user, cmd, arguments, error) {
+  if (error == "User can't run the previous command because he is banned.") {
+    bot.sendMessage({
+      to: config.general.logChannel,
+      message: "*" + Date() + "*\n**" + user + "** is a banned user and it's trying to touch me.\n\n"
+    });
+    return;
+  }
+  if (config.general.logging) {
+    if (error) {
+      bot.sendMessage({
+        to: config.general.logChannel,
+        message: "*" + Date() + "*\n**" + user + "\'s** access to the command `" + cmd + "` with the arguments `" + JSON.stringify(arguments) + "` in channel <#" + channelID + "> **has been denied**\n**Reason**: `" + error + "`\n\n"
+      });
+    } else {
+      bot.sendMessage({
+        to: config.general.logChannel,
+        message: "*" + Date() + "*\n**" + user + "** used command `" + cmd + "` with the arguments `" + JSON.stringify(arguments) + "` in channel <#" + channelID + ">\n\n"
+      });
+    }
+  }
+}
+
+function printError(channelID, err) {
+  bot.sendMessage({
+    to: channelID,
+    message: "**Exception:** ```javascript\n" + JSON.stringify(err, null, '\t') + "```"
+  });
+
 }

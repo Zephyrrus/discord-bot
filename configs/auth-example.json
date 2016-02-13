@@ -17,5 +17,9 @@
   },
   "osu":{
     "apikey": ""
+  },
+  "anilist":{
+    "client_id": "",
+    "client_secret": ""
   }
 }

@@ -5,7 +5,6 @@ function database() {
     this.messages = require("./db/messages.json");
     this.channels = require("./db/channels.json");
     this.images = require("./db/images.json");
-    this.nightcores = require("./db/nightcores.json");
     this.beatmaps = require("./db/beatmaps.json");
     this.bans = require("./db/bans.json");
     this.nsfwChannels = require("./db/nsfwChannels.json");
@@ -31,13 +30,6 @@ function database() {
                console.error("write error:  " + error.message);
              }
            });
-        break;
-        case "nightcores":
-          fs.writeFile("db/nightcores.json", JSON.stringify(this.nightcores, null, '\t').replace(/`/g, '\u200B`'), function(error) {
-              if (error) {
-                console.error("write error:  " + error.message);
-              }
-            });
         break;
         case "beatmaps":
           fs.writeFile("db/beatmaps.json", JSON.stringify(this.beatmaps, null, '\t').replace(/`/g, '\u200B`'), function(error) {

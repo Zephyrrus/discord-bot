@@ -1,6 +1,8 @@
 var uidFromMention = /<@([0-9]+)>/;
 
 var bombs = {};
+var colors = ["red", "green", "blue"]
+
 //"defuserID": {"createdBy": e.userID, "defused": false, "correctWire": }
 module.exports = {
   properties: {
@@ -23,8 +25,9 @@ module.exports = {
     onlyMonitored: true
   },
   action: function (args, e) {
-    var defaultExplodeTime = 30;
-    if (args[0] == "start") {
+    var defaultExplodeTime = 45;
+    if (args[0] && args[0].toLowerCase() == "start") {
+
       if (!uidFromMention.test(args[1])) {
         e.bot.sendMessage({
           to: e.channelID,
@@ -47,7 +50,7 @@ module.exports = {
         initiateBomb(e, e.userID, mentionedUser, defaultExplodeTime);
       });
 
-    } else if (args[0] == "wire") {
+    } else if (args[0] && args[0].toLowerCase() == "wire") {
       if (!bombs[e.userID.toString()]) {
         e.bot.sendMessage({
           to: e.channelID,
@@ -63,6 +66,7 @@ module.exports = {
         });
         return;
       }
+      // do we even need this if the bomb explodes instantly ?
       if(bombs[e.userID.toString()].defused != -1){
         e.bot.sendMessage({
           to: e.channelID,

@@ -1,4 +1,20 @@
 {
+	"general": {
+		"masterID": "132166948359241728",
+		"username": "Rin",
+		"listenTo": "rin",
+		"defaultStatus": "Rin's older sister",
+		"globalcooldown": 2000,
+		"themeSong": "https://www.youtube.com/watch?v=Vw32WZJSMU4",
+		"logging": false,
+		"logChannel": "143863604205060096"
+	},
+	"reddit": {
+		"deletereddit": false
+	},
+	"content": {
+		"allowNSFW": true
+	},
 	"deletereddit": true,
 	"masterID": "132166948359241728",
 	"username": "Rin",
@@ -6,5 +22,6 @@
 	"allowNSFW": false,
 	"defaultStatus": "Being a lil cat <3",
 	"globalcooldown": 2000,
-	"themeSong": "https://www.youtube.com/watch?v=Vw32WZJSMU4"
+	"themeSong": "https://www.youtube.com/watch?v=Vw32WZJSMU4",
+	"logChannel": "143863604205060096"
 }

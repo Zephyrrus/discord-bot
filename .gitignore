@@ -10,4 +10,6 @@ configs/auth.json
 configs/config_dev.json
 configs/auth_dev.json
 modules/cache/
+modules/waifu/img/
 log.txt
+bump.cmd

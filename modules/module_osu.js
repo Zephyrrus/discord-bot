@@ -1,3 +1,13 @@
+var databaseStructure = [
+  { name: "id", type: "autonumber", primaryKey: true },
+  { name: "beatmapID", type: "string", required: true, unique: true },
+  { name: "title", type: "string" },
+  { name: "addedDate", type: "datetime", required: true },
+  { name: "addedBy", type: "number", required: true },
+  { name: "tags", type: "string" }
+];
+var database = new(require("./database/databaseHandler.js"))('beatmap', databaseStructure);
+
 var uidFromMention = /<@([0-9]+)>/;
 var fs = require('fs');
 var http = require('follow-redirects').https;
@@ -7,6 +17,9 @@ if (GLOBAL.MODE === "production") {
 } else {
   var auth = require('../configs/auth_dev.json');
 }
+
+
+
 module.exports = {
   properties: {
     "module": true,
@@ -19,14 +32,7 @@ module.exports = {
       "moduleName": "osu"
     },
     "requiresDB": true,
-    "databaseStructure": {
-      "id": "autonumber",
-      "beatmapId": "string",
-      "title": "string",
-      "addedOn": "datetime",
-      "addedBy": "number",
-      "tags": "string"
-    }
+    databaseStructure: databaseStructure
   },
   lastTime: 0,
   cooldown: 5000,
@@ -39,10 +45,10 @@ module.exports = {
   action: function(args, e) {
     var osuID = args[1];
     var regex = new RegExp("^[a-zA-Z0-9\-\_]+$");
-    console.log(args[0]);
+
     if (args[0] === "add") {
       var alreadyExists = -1;
-      if (args[1] == undefined /*|| args[1].length != 11*/ ) {
+      if (args[1] == undefined) {
         e.bot.sendMessage({
           to: e.channelID,
           message: "<@" + e.userID + "> I can't learn beatmap, it's id seems to be invalid."
@@ -74,10 +80,10 @@ module.exports = {
                 });
                 e.db.saveConfig("beatmaps");
               } else {
-                e.bot.sendMessage({
+                e.bot.editMessage({
                   channel: response.channel_id,
                   messageID: response.id,
-                  message: "<@" + e.userID + "> This id is invalid or OSU API is not answering my requets `[" + osuID + "]`. :(\n\n"
+                  message: "<@" + e.userID + "> This id is invalid or OSU API is not answering my requets `[" + osuID + "]`. :("
                 });
               }
             });
@@ -113,8 +119,8 @@ module.exports = {
         to: e.channelID,
         message: "<@" + e.userID + "> I don't know this beatmap."
       });
-
       return;
+
     } else if (args[0] === "count") {
       e.bot.sendMessage({
         to: e.channelID,
@@ -130,6 +136,7 @@ module.exports = {
         to: e.userID,
         message: "<@" + e.userID + "> Listing every Osu! beatmap I know [Count: **" + e.db.beatmaps['maps'].length + "**]```\n" + result + "```"
       });
+
     } else if (args[0] === "random") {
       e.bot.sendMessage({
         to: e.channelID,
@@ -145,6 +152,7 @@ module.exports = {
           }
         });
       });
+
     } else {
       var osuObject = e.db.beatmaps['maps'][randomInt(0, e.db.beatmaps['maps'].length)];
       e.bot.sendMessage({

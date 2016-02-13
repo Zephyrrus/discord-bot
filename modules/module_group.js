@@ -100,7 +100,7 @@ module.exports = {
                 str += "`" + g[i] + "`: "
                 for(j = 0; j < e.db.groups[g[i]].length; j++) {
                     //str += " <@" + e.db.groups[g[i]][j] + ">";
-                    str += " " + getUserName(e.db.groups[g[i]][j], e);
+                    str += " " + getUserName(e.db.groups[g[i]][j], e) + ",";
                 }
                 str += "\n";
             }

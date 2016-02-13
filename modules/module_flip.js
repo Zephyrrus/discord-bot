@@ -22,10 +22,11 @@ module.exports = {
   action: function(args, e) {
     if (args[0].substring(0,2) == "bo") {
       var bestOfs = parseInt(args[0].substring(2));
-      if(bestOfs == "NaN") bestOfs = 3;
+      if(isNaN(bestOfs)) bestOfs = 3;
       if (args.length < 2){
         return;
       }
+      if(bestOfs > 10000 && e.config.general.masterID != e.userID) bestOfs = 10000;
       args.splice(0,1);
 
       var fullArg = "";

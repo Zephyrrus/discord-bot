@@ -3,19 +3,19 @@ var qs = require('querystring');
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var logger = require("winston");
 var app = express();
-
+/* global o */
 var keyHandler = require('./webKeyHandler.js');
+var databaseUtils = require('../database/databaseUtils.js');
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded());
-/* global o */
-function webModule(o) {
-  /*if (!(this instanceof Square)) {
-    return new Square(width);
-  }*/
-  this.bot = o.bot;
-  this.o = o;
+
+function webModule(_disco) {
+  logger.info("Initializing web module");
+  this.bot = _disco.botInstance;
+  this._disco = _disco;
 }
 
 webModule.prototype.initializeModule = function initializeModule() {
@@ -24,14 +24,14 @@ webModule.prototype.initializeModule = function initializeModule() {
 
 module.exports = webModule;
 
-app.use(function(req, res, next) { // matches all requests
+app.use(function (req, res, next) { // matches all requests
   console.log((req.method + '       ').substr(0, 8) + req.url); // do stuff like logging
   next(); // goes to the thingy below
 });
 
 app.use('/res', express.static(path.join(__dirname, 'res')));
 
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   /*console.log("Cookies: ", req.cookies);
   var rnd=Math.random().toString();
   rnd=rnd.substring(2,rnd.length);
@@ -46,16 +46,16 @@ app.get('/', function(req, res) {
 
 
 
-app.post('/', function(req, res) {
+app.post('/', function (req, res) {
   var body = '';
-  req.on('data', function(data) {
+  req.on('data', function (data) {
     body += data;
     // Too much POST data, kill the connection!
     // 1e6 === 1 * Math.pow(10, 6) === 1 * 1000000 ~~~ 1MB
     if (body.length > 1e6)
       req.connection.destroy();
   });
-  req.on('end', function() {
+  req.on('end', function () {
     var post = qs.parse(body);
     console.log(post);
     // use post['blah'], etc.
@@ -64,7 +64,7 @@ app.post('/', function(req, res) {
 });
 
 
-app.get('/postmessage', function(req, res){
+app.get('/postmessage', function (req, res) {
   /*if (!req.query.message || req.query.message.length === 0) {
     return res.status(400).json({
       status: 'missing message'
@@ -89,8 +89,8 @@ app.get('/postmessage', function(req, res){
   });
 })
 
-app.get('/status', function(req, res) {
-  if (!o) {
+app.get('/status', function (req, res) {
+  if (!_disco) {
     return res.status(200).json({
       status: "offline"
     });
@@ -98,23 +98,25 @@ app.get('/status', function(req, res) {
   if (req.query.all) {
     return res.status(200).json({
       status: "online",
-      botinfo: o.bot.servers,
-      startTime: o.botStatus.startTime,
-      cooldown: o.botStatus.cooldown,
-      nsfwFilter: o.botStatus.nsfwFilter,
-      uptime: Math.floor((((new Date()).getTime() / 1000) - o.botStatus.startTime))
+      botinfo: _disco.bot.servers,
+      startTime: _disco.botStatus.startTime,
+      cooldown: _disco.botStatus.cooldown,
+      nsfwFilter: _disco.botStatus.nsfwFilter,
+      uptime: Math.floor((((new Date()).getTime() / 1000) - _disco.botStatus.startTime))
     });
   }
   res.status(200).json({
     status: "online",
-    startTime: o.botStatus.startTime,
-    cooldown: o.botStatus.cooldown,
-    nsfwFilter: o.botStatus.nsfwFilter,
-    uptime: Math.floor((((new Date()).getTime() / 1000) - o.botStatus.startTime))
+    startTime: _disco.botStatus.startTime,
+    cooldown: _disco.botStatus.cooldown,
+    nsfwFilter: _disco.botStatus.nsfwFilter,
+    uptime: Math.floor((((new Date()).getTime() / 1000) - _disco.botStatus.startTime))
   });
 });
 
-app.get('/database', function(req, res) {
+app.get('/database', function (req, res) {
+  var tables = ["nightcore", "ban", "osu", "reminder", "rank"];
+
   if (!req.query.name || req.query.name.length === 0) {
     return res.status(400).json({
       response: {
@@ -122,34 +124,47 @@ app.get('/database', function(req, res) {
       }
     });
   }
-  if (!o.database[req.query.name]) {
+  if (tables.indexOf(req.query.name) < 0) {
     return res.status(404).json({
       response: {
         status: 'invalid database name'
       }
     });
   }
-  if(keyHandler.validateKey() == 0)
+
+  if (keyHandler.validateKey() == 0) {
+    _disco.bot.sendMessage({
+      to: "143863604205060096",
+      message: "endpoint /database with params `" + JSON.stringify(req.query) + "` used."
+    })
+    databaseUtils.list(req.query.name, function(err, resp){
+      if(err) return res.status(500).json({
+        response: {
+          status: err
+        }
+      });
+
+      res.status(200).json({
+        response: {
+          status: "online",
+          database: resp
+        }
+      });
+    });
+
+  }
+});
+
+app.get('/solve', function (req, res) {
   res.status(200).json({
     response: {
-      status: "online",
-      database: o.database[req.query.name]
+      status: "in bed with opl",
+      response: "opl is a faggot"
     }
   });
 });
 
-app.get('/auth', function(req, res) {
-
-  res.status(200).json({
-    response: {
-      status: "looking at your ugly assface",
-      username: "your mom",
-      password: "your dad"
-    }
-  });
-});
-
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   console.log(err);
   res.status(500).json({
     status: 'internal_server_error'
@@ -157,6 +172,6 @@ app.use(function(err, req, res, next) {
   throw err;
 });
 
-app.listen(8080, "0.0.0.0", function() { // moved to 8080
+app.listen(8080, "0.0.0.0", function () { // moved to 8080
   console.log("App listening on " + "0.0.0.0" + ":" + "8080");
 })
