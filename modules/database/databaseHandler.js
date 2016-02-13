@@ -54,7 +54,6 @@ databaseHandler.prototype.add = function (params, callback) {
                 receivedStructure.push(this.structure[i].name);
                 receivedParams.push(params[k][keyName]);
                 if (this.structure[i].required != undefined && this.structure[i].required == true) requiredParamsSentCount++; // we found a required parameter, increment the counter
-                console.log(params[k])
             }
         }
     }
@@ -84,79 +83,6 @@ databaseHandler.prototype.add = function (params, callback) {
         return (callback && callback(null, null))
     });
 
-}
-
-/*
- * Searches for something in the database and returns an object with the results from the db
- *
- * @input params: This is an array of object used for querring, it should look like this `[{"rownameToSearch": "whatRowShouldEqual"}]`
- * @input CB
- * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
- *
- */
-databaseHandler.prototype.find = function(params, callback){
-  callback = callback || () => {};
-  receivedParams = [];
-  questionMarks = "";
-  paramsToSearch = [];
-  result = [];
-
-  for (var i = 0; i < this.structure.length; i++) {
-      for (var k = 0; k < params.length; k++) {
-          if (this.structure[i].name == Object.keys(params[k])) {
-              receivedParams.push(params[k]);
-          }
-      }
-  }
-  if (receivedParams.length == 0) return (callback && callback({type: "HANDLER_ERROR_FIND", error: "Invalid or no parameters defined"}, null)); // this happens if no correct parametes were received
-
-  for (var i = 0; i < receivedParams.length; i++) {
-      if (i + 1 == receivedParams.length) {
-          questionMarks += Object.keys(receivedParams[i]) + "=?";
-      } else {
-          questionMarks += Object.keys(receivedParams[i]) + "=? AND ";
-      }
-      paramsToSearch.push(receivedParams[i][Object.keys(receivedParams[i])].toString());
-  }
-  console.log(paramsToSearch);
-
-  logger.debug("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch);
-  this.database.each("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch, function(err, row) {
-      if(err){
-        logger.error("[SQLITE_ERROR]_SELECT_WUERRY: " + err);
-        return (callback && callback({type: "SQLITEERROR", error: err}, null));
-      }
-      result.push(row);
-  }, function (err, cntx) {
-      if (err) {
-        logger.error("[SQLITE_ERROR]_SELECT_WUERRY_END: " + err);
-        return (callback && callback({type: "SQLITEERROR", error: err}, null));
-      }
-      return (callback && callback(null, {count: cntx, result: result}));
-  });
-}
-
-/*
- * Helper function if you want to get everything from the database
- * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
- *
- */
-databaseHandler.prototype.list = function(callback) {
-    callback = callback || () => {};
-    var result = [];
-    this.database.each("SELECT * FROM " + this.moduleName, function(err, row) {
-        if (err) {
-          logger.error("[SQLITE_ERROR]_LIST: " + err);
-          return (callback(err));
-        }
-        result.push(row);
-    }, function (err, cntx) {
-      if (err) {
-        logger.error("[SQLITE_ERROR]_LIST: " + err);
-        return (callback({type: "SQLITEERROR", error: err}, null));
-    }
-      return (callback(null, {count: cntx, result: result}));
-    });
 }
 
 /*
@@ -204,25 +130,99 @@ databaseHandler.prototype.delete = function(params, callback){
 
 }
 
-//NOT IMPLEMENTANDO
-databaseHandler.prototype.customquerry = function(args) {
+/*
+ * Searches for something in the database and returns an object with the results from the db
+ *
+ * @input params: This is an array of object used for querring, it should look like this `[{"rownameToSearch": "whatRowShouldEqual"}]`
+ * @input CB
+ * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
+ *
+ */
+databaseHandler.prototype.find = function(params, callback){
+  callback = callback || () => {};
+  receivedParams = [];
+  questionMarks = "";
+  paramsToSearch = [];
+  result = [];
+
+  for (var i = 0; i < this.structure.length; i++) {
+      for (var k = 0; k < params.length; k++) {
+          if (this.structure[i].name == Object.keys(params[k])) {
+              receivedParams.push(params[k]);
+          }
+      }
+  }
+  if (receivedParams.length == 0) return (callback && callback({type: "HANDLER_ERROR_FIND", error: "Invalid or no parameters defined"}, null)); // this happens if no correct parametes were received
+
+  for (var i = 0; i < receivedParams.length; i++) {
+      if (i + 1 == receivedParams.length) {
+          questionMarks += Object.keys(receivedParams[i]) + "=?";
+      } else {
+          questionMarks += Object.keys(receivedParams[i]) + "=? AND ";
+      }
+      if(receivedParams[i][Object.keys(receivedParams[i])]) paramsToSearch.push(receivedParams[i][Object.keys(receivedParams[i])].toString());
+  }
+
+  logger.debug("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch);
+  this.database.each("SELECT * FROM " + this.moduleName + " WHERE " + questionMarks, paramsToSearch, function(err, row) {
+      if(err){
+        logger.error("[SQLITE_ERROR]_SELECT_WUERRY: " + err);
+        return (callback && callback({type: "SQLITEERROR", error: err}, null));
+      }
+      result.push(row);
+  }, function (err, cntx) {
+      if (err) {
+        logger.error("[SQLITE_ERROR]_SELECT_WUERRY_END: " + err);
+        return (callback && callback({type: "SQLITEERROR", error: err}, null));
+      }
+      return (callback && callback(null, {count: cntx, result: result}));
+  });
+}
+
+//READ ONLY QUERRIES
+/*
+ * Helper function if you want to get everything from the database
+ * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
+ *
+ */
+databaseHandler.prototype.list = function(callback) {
+    callback = callback || () => {};
     var result = [];
-    return result;
+    this.database.each("SELECT * FROM " + this.moduleName, function(err, row) {
+        if (err) {
+          logger.error("[SQLITE_ERROR]_LIST: " + err);
+          return (callback(err));
+        }
+        result.push(row);
+    }, function (err, cntx) {
+      if (err) {
+        logger.error("[SQLITE_ERROR]_LIST: " + err);
+        return (callback({type: "SQLITEERROR", error: err}, null));
+    }
+      return (callback(null, {count: cntx, result: result}));
+    });
 }
 
-//NOT IMPLEMENTANDO
-assertTypes = function(structure, params, callback) {
 
-    //{errorCode, error}
+databaseHandler.prototype.random = function(callback) {
+  var result = [];
+  this.database.each("SELECT * FROM " + this.moduleName + " ORDER BY random() LIMIT 1;", function(err, row) {
+      if (err) {
+        logger.error("[SQLITE_ERROR]_RANDOM: " + err);
+        return (callback && callback(err));
+      }
+      result.push(row);
+  }, function (err, cntx) {
+    if (err) {
+      logger.error("[SQLITE_ERROR]_RANDOM: " + err);
+      return (callback && callback({type: "SQLITEERROR", error: err.stack}, null));
+  }
+    return (callback && callback(null, {count: cntx, result: result}));
+  });
 }
 
-//NOT IMPLEMENTANDO
-getError = function(errorCode) {
 
-
-}
-
-//THIS SHOULD BE PRIVATE
+//Private functions
 createTable = function(moduleName, structure, database, callback) {
   database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='" + moduleName + "'", function(err, row) {
     if (row === undefined) {
