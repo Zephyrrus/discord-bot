@@ -44,7 +44,7 @@ databaseHandler.prototype.add = function (params, callback) {
   var questionMarks = "";
   var paramsToInsert = "";
   var self = this;
-  if(!(params instanceof Array)))
+  if(!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_INSERT", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   // prepares the parameters based on the this.structure and removes parameters which are not defined in the this.structure
   // check if every REQUIRED parameter is sent
@@ -100,7 +100,7 @@ databaseHandler.prototype.delete = function (params, callback) {
   var questionMarks = "";
   var paramsToSearch = [];
   var result = [];
-  if(!(params instanceof Array)))
+  if(!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_DELETE", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   for (var i = 0; i < this.structure.length; i++) {
     for (var k = 0; k < params.length; k++) {
@@ -236,7 +236,7 @@ databaseHandler.prototype.find = function (params, callback) {
   questionMarks = "";
   paramsToSearch = [];
   result = [];
-  if(!(params instanceof Array)))
+  if(!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_FIND", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   for (var i = 0; i < this.structure.length; i++) {
     for (var k = 0; k < params.length; k++) {
