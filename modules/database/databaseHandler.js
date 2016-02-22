@@ -44,7 +44,7 @@ databaseHandler.prototype.add = function (params, callback) {
   var questionMarks = "";
   var paramsToInsert = "";
   var self = this;
-  if(!(params instanceof Array))
+  if (!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_INSERT", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   // prepares the parameters based on the this.structure and removes parameters which are not defined in the this.structure
   // check if every REQUIRED parameter is sent
@@ -100,7 +100,7 @@ databaseHandler.prototype.delete = function (params, callback) {
   var questionMarks = "";
   var paramsToSearch = [];
   var result = [];
-  if(!(params instanceof Array))
+  if (!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_DELETE", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   for (var i = 0; i < this.structure.length; i++) {
     for (var k = 0; k < params.length; k++) {
@@ -151,7 +151,7 @@ databaseHandler.prototype.update = function (querryParams, updateParams, callbac
   var receivedStructure = [];
   var updateRowNames = "";
   var finalParams = [];
-  if(!(querryParams instanceof Array) || !(updateParams instanceof Array))
+  if (!(querryParams instanceof Array) || !(updateParams instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_UPDATE", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   for (var i = 0; i < this.structure.length; i++) {
     for (var k = 0; k < updateParams.length; k++) {
@@ -222,21 +222,21 @@ databaseHandler.prototype.update = function (querryParams, updateParams, callbac
 }
 
 
-  /*
-   * Searches for something in the database and returns an object with the results from the db
-   *
-   * @input params: This is an array of object used for querring, it should look like this `[{"rownameToSearch": "whatRowShouldEqual"}]`
-   * @input CB
-   * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
-   *
-   */
+/*
+ * Searches for something in the database and returns an object with the results from the db
+ *
+ * @input params: This is an array of object used for querring, it should look like this `[{"rownameToSearch": "whatRowShouldEqual"}]`
+ * @input CB
+ * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
+ *
+ */
 databaseHandler.prototype.find = function (params, callback) {
   callback = callback || () => {};
   receivedParams = [];
   questionMarks = "";
   paramsToSearch = [];
   result = [];
-  if(!(params instanceof Array))
+  if (!(params instanceof Array))
     return (callback && callback({ type: "HANDLER_ERROR_FIND", error: "You must send the objects in an array. Please read the documentation for further information" }, null));
   for (var i = 0; i < this.structure.length; i++) {
     for (var k = 0; k < params.length; k++) {
@@ -315,6 +315,70 @@ databaseHandler.prototype.random = function (callback) {
 }
 
 
+databaseHandler.prototype.top = function (topObject, columnName, callback) {
+  var sortBy = "DESC";
+  var limit = 10;
+  if (typeof topObject === "object") {
+    if (topObject.sortBy && (topObject.sortBy.toLowerCase() === "ASC" || topObject.sortBy.toLowerCase() === "DESC")) {
+      sortBy = sortBy.topObject.toUpperCase();
+    };
+    if (topObject.limit && !isNaN(parseInt(topObject.limit))) {
+      limit = parseInt(topObject.limit);
+    }
+
+  } else {
+    var parsedObject = parseInt(topObject);
+    if (!isNaN(parsedObject)) {
+      limit = 10;
+    } else if (parsedObject.toString == topObject)
+      limit = parsedObject;
+  }
+  var valid = false;
+  for (var i = 0; i < this.structure.length; i++) {
+    if (this.structure[i].name == columnName) {
+      valid = true;
+    }
+  }
+  if (!valid) return (callback && callback({ type: "HANDLER_ERROR_TOP", error: "No column with that name." }, null));
+
+  var result = [];
+  this.database.each(`SELECT * FROM ${this.moduleName} ORDER BY ${columnName} ${sortBy} LIMIT ${limit};`, function (err, row) {
+    if (err) {
+      logger.error("[SQLITE_ERROR]_TOP: " + err);
+      return (callback && callback(err));
+    }
+    result.push(row);
+  }, function (err, cntx) {
+    if (err) {
+      logger.error("[SQLITE_ERROR]_TOP: " + err);
+      return (callback && callback({
+        type: "SQLITEERROR",
+        error: err.stack
+      }, null));
+    }
+    return (callback && callback(null, { count: cntx, result: result }));
+  });
+}
+
+databaseHandler.prototype.count = function (columnName, callback) {
+  var valid = false;
+  for (var i = 0; i < this.structure.length; i++) {
+    if (this.structure[i].name == columnName) {
+      valid = true;
+    }
+  }
+  if (!valid) return (callback && callback({ type: "HANDLER_ERROR_COUNT", error: "No column with that name." }, null));
+
+  this.database.each(`SELECT count(${columnName}) FROM ${this.moduleName};`, function (err, result) {
+    if (err) {
+      logger.error("[SQLITE_ERROR]_COUNT: " + err);
+      return (callback && callback(err));
+    }
+    console.log(result);
+    return (callback && callback(null, result['count(' + columnName + ')']))
+  });
+}
+
 //Private functions
 createTable = function (moduleName, structure, database, callback) {
   database.get("SELECT name FROM sqlite_master WHERE type='table' AND name='" + moduleName + "'", function (err, row) {
@@ -344,11 +408,13 @@ createTable = function (moduleName, structure, database, callback) {
   });
 }
 
+
 getType = function (typeName) {
   switch (typeName.toLowerCase()) {
   case "number":
   case "int":
   case "autonumber":
+  case "integer":
     return "INTEGER";
     break;
   case "string":
@@ -357,7 +423,7 @@ getType = function (typeName) {
     return "TEXT";
     break;
   default:
-    return undefined;
+    return "TEXT";
     break;
   }
 }

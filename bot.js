@@ -7,6 +7,8 @@ var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
+var commandRegister = require("./commandRegister");
+var command = new commandRegister();
 
 process.argv.forEach(function (val, index, array) {
   if (val === "development") MODE = "development";
@@ -102,6 +104,7 @@ bot.on("ready", function (rawEvent) {
     }
   }, bot);
   var startupTime = Math.round((new Date()).getTime() - startTimeMs);
+  command.addModule(require("./modules/module_kitten.js"));
   logger.info(`It took ${startupTime} ms to initialize the bot.`)
 });
 
@@ -627,7 +630,7 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
   message: require("./modules/module_message.js"),
   nightcore: require("./modules/module_nightcore.js"),
   '9gag': require("./modules/module_9gag.js"),
-  kitten: require("./modules/module_kitten.js"),
+  //kitten: require("./modules/module_kitten.js"),
   anime: require("./modules/module_animedb.js"),
   reddit: require("./modules/module_reddit.js"),
   osu: require("./modules/module_osu.js"),
@@ -719,6 +722,24 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     //console.log("Not a command");
     return;
   }
+  var nsfwEnabled = false;
+  if((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW){
+    nsfwEnabled = true;
+  }
+  command.tryExec({
+    "user": user,
+    "userID": userID,
+    "channelID": channelID,
+    "rawEvent": rawEvent,
+    "bot": bot,
+    "db": database,
+    "config": config, //,
+    "logger": logger,
+    "printError": printError,
+    "logCommand": logCommand,
+    "recursiveSplitMessages": recursiveSplitMessages,
+    "nsfwEnabled": nsfwEnabled
+  }, parsed.command, parsed.args);
   if (parsed.command == "eval") {
     if (userID != config.masterID) {
       bot.sendMessage({

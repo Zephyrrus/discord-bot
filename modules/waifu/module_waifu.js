@@ -51,7 +51,7 @@ doWaifu = function (e, args) {
             var result = fuse.search(args.join(" "));
             console.log(result);
             if (result.length > 0) {
-                bot.editMessage({
+                e.bot.editMessage({
                     channel: response.channel_id,
                     messageID: response.id,
                     message: "<@" + e.userID + "> You sneaky bastard, you have waifu preferences. I'll see what I can do about this for you. ;)\n\nI think I found something for you <3"
@@ -61,7 +61,7 @@ doWaifu = function (e, args) {
                 });
 
             } else {
-                bot.editMessage({
+                e.bot.editMessage({
                     channel: response.channel_id,
                     messageID: response.id,
                     message: "<@" + e.userID + "> You sneaky bastard, you have waifu preferences. I'll see what I can do about this for you. ;)\n\nSorry, I can't find anything based on your query. I will search for a random waifu for you"
@@ -88,7 +88,7 @@ function getWaifu(e, waifuObject) {
             if (exists) {
                 e.bot.uploadFile({
                     to: e.channelID,
-                    file: fs.createReadStream(location)
+                    file: location
                 }, function (error, response) {
                     if (error != undefined && error.indexOf("403") > -1) {
                         e.logger.error("[waifu] error: " + error);
@@ -123,7 +123,7 @@ function getWaifu(e, waifuObject) {
                           if (exists) {
                             e.bot.uploadFile({
                               to: e.channelID,
-                              file: fs.createReadStream(filename)
+                              file: filename
                             });
                           }
                         });

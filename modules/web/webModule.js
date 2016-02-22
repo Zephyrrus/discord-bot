@@ -10,7 +10,7 @@ var keyHandler = require('./webKeyHandler.js');
 var databaseUtils = require('../database/databaseUtils.js');
 
 app.use(cookieParser());
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 function webModule(_disco) {
   logger.info("Initializing web module");

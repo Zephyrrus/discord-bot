@@ -1,13 +1,26 @@
 var uidFromMention = /<@([0-9]+)>/;
 var slaps = ["a large trout","a large pig","a large horse", "a large cat", "a Big Mac", "a large dog", "a computer", "a stolen car"]
-var answers = [
+var answersArr = [
+  [
     'Maybe.', 'Certainly not.', 'I hope so.', 'Not in your wildest dreams.',
     'There is a good chance.', 'Quite likely.', 'I think so.', 'I hope not.',
     'I would say so.', 'Never!', 'Fuhgeddaboudit.', 'Ahaha! Really?!?', 'Pfft.',
     'Sorry, bucko.', 'Hell, yes.', 'Hell to the no.', 'The future is bleak.',
     'The future is uncertain.', 'I would rather not say.', 'Who cares?',
-    'Possibly.', 'Never, ever, ever.', 'There is a small chance.', 'Yes!'];
-var slapExceptions = ['']
+    'Possibly.', 'Never, ever, ever.', 'There is a small chance.', 'Yes!'
+  ],
+  [
+    'As I see it, yes.', 'Better not tell you now.', 'Cannot predict now.',
+	  'Don\'t count on it.', 'In your dreams.', 'It is certain.', 'Most likely.',
+    'My CPU is saying no.', 'My CPU is saying yes.', 'My CPU is saying there is a very slim chance.',
+    'Out of psychic coverage range.', 'Signs point to yes.', 'Sure, sure.', 'Very doubtful.',
+	  'Without a doubt.', 'Yes, definitely.', 'You are doomed.', 'You can\'t handle the truth.','No, never.',
+	  'Impossible.','As I see it, no.','Definitely no.','Definitely yes.','Only in your wildest dreams.','Not really.',
+	  'Of course.'
+	]
+];
+
+var slapExceptions = [''];
 module.exports = {
   dance: {
     lastTime: 0,
@@ -79,7 +92,7 @@ module.exports = {
       var rand = (new seededRandom(sumASCII(args.join(" ") + " "))).random();
       e.bot.sendMessage({
         to: e.channelID,
-        message: "<@" + e.userID + "> *" + answers[randomScaler(rand, 0, answers.length)] + "*"
+        message: "<@" + e.userID + "> :crystal_ball: *" + answersArr[0][randomScaler(rand, 0, answersArr[0].length)] + "* :crystal_ball:"
       });
     }
   }

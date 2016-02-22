@@ -9,7 +9,7 @@ else {
 var fs = require('fs');
 var http = require('follow-redirects').http;
 var reddit = new Snoocore({
-  userAgent: 'DiscordBot - Rin - Version 1.2.11', // unique string identifying the app
+  userAgent: 'DiscordBot - RayLen - Version 1.5.11', // unique string identifying the app
   throttle: 300,
   oauth: {
     type: 'script',
@@ -65,9 +65,8 @@ function randomInt(low, high) {
 
 function doReddit(args, e) {
   var arguments = args;
-  var nsfw = e.db.nsfwChannels.indexOf(e.channelID) > -1 ? true : false;
 
-  getSubreddit(arguments, nsfw, function(response) {
+  getSubreddit(arguments, e.nsfwEnabled, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
       messageID: e.rawEvent.d.id
@@ -91,7 +90,7 @@ function doReddit(args, e) {
             }, function(err, response) {
               e.bot.uploadFile({
                 to: e.channelID,
-                file: fs.createReadStream(filename)
+                file: filename
               }, function(error, response) {
                 if(error != undefined && error.indexOf("403") > -1){
                   e.logger.error("[reddit] error: " + error);
@@ -99,12 +98,14 @@ function doReddit(args, e) {
                       to: e.channelID,
                       message: "I don't have the permissions to upload files on this channel, here's the link to it: " + link,
                     });
+                    return;
                 }else{
                 e.bot.sendMessage({
                   to: e.channelID,
                   message: "**Title**: " + responseReddit.title + "\n**Permalink**: reddit.com" + responseReddit.permalink,
                 });
                 if (e.config.deletereddit) fs.unlink(filename);
+                return;
               }
               });
             });

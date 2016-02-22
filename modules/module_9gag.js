@@ -174,7 +174,7 @@ function post9GAG(args, e, gagObject) {
         }, function(error, response) {
           e.bot.uploadFile({
             to: e.channelID,
-            file: fs.createReadStream(filename)
+            file: filename
           }, function(error, response) {
             e.bot.sendMessage({
               to: e.channelID,

@@ -53,10 +53,10 @@ module.exports = {
 
           if (anime.url) {
             if (isAnimeNSFW.toLowerCase() == "r17+") {
-              if (e.config.allowNSFW)
+              if (e.nsfwEnabled)
                 resultString += "**URL:** " + anime.url + "\n";
-              } else {
-                resultString += "**URL:** " + anime.url + "\n";
+            } else {
+              resultString += "**URL:** " + anime.url + "\n";
             }
           }
 

@@ -5,7 +5,7 @@ module.exports = {
   size: {
     lastTime: 0,
     cooldown: 500,
-    description: "size - returns you uhh size",
+    description: "size - returns your uhh size",
     category: "entertainment",
     permission: {
       onlyMonitored: true

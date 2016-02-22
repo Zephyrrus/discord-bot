@@ -13,7 +13,7 @@ var cachedKey = null;
 
 module.exports = {
   getAvatar: function(name, callback){
-    var url = "https://anilist.co/api/auth/access_token?grant_type=client_credentials&client_id=" + auth.anilist.client_id + "&client_secret=" + auth.anilist.client_secret;
+    var tokenUrl = "https://anilist.co/api/auth/access_token?grant_type=client_credentials&client_id=" + auth.anilist.client_id + "&client_secret=" + auth.anilist.client_secret;
 
     if(cachedKey != null && cachedKey.expire > ((new Date()).getTime()/1000)){
       console.log("Found cached API key for anilist: " + JSON.stringify(cachedKey));
@@ -31,7 +31,7 @@ module.exports = {
       return;
     }
 
-    request({url: url, method:"POST", json:true}, function(err,res,body){
+    request({url: tokenUrl, method:"POST", json:true}, function(err,res,body){
         if(err) return (callback && callback(err, null));
         if(body.access_token != undefined){
           cachedKey = {access_token: body.access_token, expire: (((new Date()).getTime()/1000) + 3600)};

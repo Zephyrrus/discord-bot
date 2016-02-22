@@ -6,30 +6,30 @@ function doKitten(args, e) {
     channel: e.channelID,
     messageID: e.rawEvent.d.id
   });
-  http.get("http://thecatapi.com/api/images/get", function(res) {
+  http.get("http://thecatapi.com/api/images/get", function (res) {
     var body = '';
 
-    res.on('data', function(chunk) {
+    res.on('data', function (chunk) {
       body += chunk;
     });
-    res.on('end', function() {
+    res.on('end', function () {
       var link = res.fetchedUrls[0].replace(/^https:\/\//i, 'http://');
       var filename = "./modules/cache/" + link.split("/").pop();
       var file = fs.createWriteStream(filename);
-      var request = http.get(link.toString(), function(response) {
+      var request = http.get(link.toString(), function (response) {
         response.pipe(file);
       });
-      request.on('close', function() {
-        fs.exists(filename, function(exists) {
+      request.on('close', function () {
+        fs.exists(filename, function (exists) {
           if (exists) {
             e.bot.sendMessage({
               to: e.channelID,
               message: "<@" + e.userID + "> **Nyaa~** \u2764",
-            }, function(response) {
+            }, function (response) {
               e.bot.uploadFile({
                 to: e.channelID,
-                file: fs.createReadStream(filename)
-              }, function(response) {
+                file: filename
+              }, function (response) {
                 fs.unlink(filename);
               });
             });
@@ -37,20 +37,20 @@ function doKitten(args, e) {
         });
       });
     });
-  }).on('error', function(e) {
+  }).on('error', function (e) {
     console.log("[Kitten] Got an error: ", e);
   });
 
 
 }
 
-module.exports = {
+/*module.exports = {
   properties: {
     "module": true,
     "info": {
       "description": "random kitten poster",
       "author": "Zephy",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "importance": "addon",
       "name": "Kitten poster",
       "moduleName": "kitten"
@@ -64,7 +64,29 @@ module.exports = {
   permission: {
     onlyMonitored: true
   },
-  action: function(args, e) {
+  action: function (args, e) {
     doKitten(args, e);
   }
-};
+};*/
+
+/*module.exports = {
+  install: function (factory) {
+    console.log(factory);
+    factory.addModule({
+      name: "kittenz",
+      handler: doKitten,
+      permission: "kittenz"
+    });
+  }
+}*/
+
+module.exports = {
+  "kitten": {
+    handler: doKitten,
+    permission: "kitten",
+    description: "random kitten poster",
+    author: "Zephy",
+    version: "1.1.0",
+    moduleName: "Kitten poster"
+  }
+}

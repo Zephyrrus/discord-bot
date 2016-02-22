@@ -10,7 +10,7 @@ module.exports = {
     "info": {
       "description": "bomb",
       "author": "Zephy",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "importance": "addon",
       "name": "Bomb minigame",
       "moduleName": "bomb"
@@ -20,7 +20,7 @@ module.exports = {
   lastTime: 0,
   cooldown: 500,
   category: "minigames",
-  description: ["bomb start <@mention>", "bomb wire <red/green/blue>"],
+  description: ["bomb start <@mention> - starts a defuse the bomb minigame (45 second bomb timer)", "bomb wire <red/green/blue> - defuses a bomb"],
   permission: {
     onlyMonitored: true
   },
@@ -36,6 +36,20 @@ module.exports = {
         return;
       }
       var mentionedUser = uidFromMention.exec(args[1])[1];
+      if(mentionedUser == e.userID){
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> uwotm8."
+        })
+        return;
+      }
+      if(mentionedUser == e.bot.id){
+        e.bot.sendMessage({
+          to: e.channelID,
+          message: "<@" + e.userID + "> uwotm8."
+        })
+        return;
+      }
       if (bombs[mentionedUser.toString()]) {
         e.bot.sendMessage({
           to: e.channelID,
@@ -86,7 +100,7 @@ module.exports = {
         bombs[e.userID.toString()].defused = 0;
         e.bot.sendMessage({
           to: e.channelID,
-          message: "<@" + e.userID + "> *You cut the wrong wire and the bomb explodes, epic fail.* \n\n[<@" + bombs[e.userID.toString()].createdBy +"> Your friend failed at defusing the bomb. RIP]"
+          message: "<@" + e.userID + "> *You cut the wrong wire and the bomb explodes.* \n\n[<@" + bombs[e.userID.toString()].createdBy +"> Your friend failed at defusing the bomb. RIP]"
         });
         delete bombs[e.userID.toString()];
       }

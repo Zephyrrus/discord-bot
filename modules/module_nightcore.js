@@ -30,8 +30,7 @@ module.exports = {
   category: "nightcore",
   description: ["nightcore - Dispenses a random nightcore from the database", "nightcore add <youtubeID> - Adds a nightcore to the database", "nightcore list - Lists all nightcores currently added", "nightcore count - Counts all nightcores currently in the database"],
   permission: {
-    onlyMonitored: true,
-    group: ["dev", "trusted", "root"]
+    onlyMonitored: true
   },
   action: function (args, e) {
     var regex = new RegExp("^[a-zA-Z0-9\-\_]+$");
