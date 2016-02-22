@@ -1,3 +1,4 @@
+var startTimeMs = new Date();
 /*Variable area*/
 const VERSION = require("./package.json").version;
 const BRANCH = "Database branch";
@@ -17,10 +18,6 @@ if (MODE === "production") {
 } else {
   var config = require('./configs/config_dev.json');
   var auth = require('./configs/auth_dev.json'); // or remove ./ for absolute path ^_^
-  logger.add(logger.transports.File, {
-    level: 'debug',
-    filename: "log.txt"
-  });
 }
 
 GLOBAL.MODE = MODE;
@@ -30,7 +27,7 @@ var bot = new Discordbot({
   autorun: true
 });
 var startTime = Math.round(new Date() / 1000);
-var startTimeMs = new Date();
+
 var uidFromMention = /<@([0-9]+)>/;
 
 var database = new(require("./database.js"))();
@@ -50,9 +47,19 @@ var webConnecter = require("./modules/web/webModule.js");
    }
  };*/
 //logger.addColors(myCustomLevels.colors);
+var t = startTimeMs.toISOString().replace(/[:.]/gi, '-');
+var fname = './log/' + t + '.log';
+try {
+    fs.mkdirSync('./log');
+} catch(e) {
+
+}
+
 logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-  colorize: true
+logger.add(logger.transports.Console, {colorize: true});
+logger.add(logger.transports.File, {
+    level: 'debug',
+    filename: fname
 });
 logger.level = 'debug';
 /*----------------------------------------------*/
@@ -227,7 +234,7 @@ var commands = {
         });
         bot.uploadFile({
           to: e.channelID,
-          file: fs.createReadStream(database.images[args[0].toLowerCase()])
+          file: database.images[args[0].toLowerCase()]
         })
       } else {
         sendMessages(e, ["<@" + e.userID + ">: **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added."]);
@@ -389,8 +396,8 @@ var commands = {
     category: "misc",
     hidden: true,
     permission: {
-      uid: [config.masterID],
-      group: ["waifu"],
+      /*uid: [config.masterID],
+      group: ["waifu"],*/
       onlyMonitored: true
     },
     action: function (args, e) {
@@ -405,7 +412,7 @@ var commands = {
     },
     helper: require("./modules/waifu/module_waifu.js"),
     action: function (args, e) {
-      if(e.userID == "108272892197806080") sendMessages(e, ["I am your waifu \u2764"]);
+      if(e.userID == "108272892197806080") sendMessages(e, ["I am your waifu \u2764\u203F\u2764"]);
       else {
         this.helper.action(args, e);
       }
@@ -532,18 +539,15 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
     category: "debug",
     description: "database - YOU SHALL NOT TOUCH THIS COMMAND... SERIOUSLY",
     permission: {
+      uid: [config.masterID],
       onlyMonitored: true
     },
     action: function (args, e) {
 
       var databaseStructure = [
         { name: "id", type: "autonumber", primaryKey: true },
-        { name: "youtubeID", type: "string", required: true, unique: true },
-        { name: "title", type: "string" },
-        { name: "addedDate", type: "datetime", required: true },
-        { name: "addedBy", type: "number", required: true },
-        { name: "tags", type: "string" }
-      ];
+        { name: "text", type: "string", required: true}
+      ]
       if (args[0] == "dumptable") {
         var dbHandlerInstance = new databaseHandler(args[1]);
         dbHandlerInstance.list(function (err, res) {
@@ -577,8 +581,14 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
           to: e.channelID,
           message: `<@${e.userID}> Finished migrating ${count} element from the **${args[1]}** database `
         });*/
-      }else {
-        recursiveSplitMessages(e, e.channelID, "ERRRRRRRR: " + JSON.stringify(e.rawEvent, null, '\t'));
+      }else if (args[0]=="add"){
+        var database = new(require("./modules/database/databaseHandler.js"))('sqlinject', databaseStructure);
+        if(args[1]){
+          database.add([{ "text": args[1] }], function (err, res) {
+            if (err) return (printError(e.channelID, err));
+            else printError(e.channelID, res);
+          });
+        }
       }
     }
   },
@@ -603,10 +613,6 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
           to: e.channelID,
           message: `<@${e.userID}> This is the mentioned user's current avatar:\nhttps://cdn.discordapp.com/avatars/${mentionedUser}/${e.rawEvent.d.mentions[0].avatar}.jpg`
         });
-      /*  e.bot.sendMessage({
-          to: e.channelID,
-          message: `Assuming ${args.name} reffers to ${path.replace(/\//g, '').replace(/\+/g, ' ')}`
-        })*/
       }catch(e){
 
       }
@@ -636,9 +642,11 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
   "8ball": require("./modules/module_personality.js").ball,
   bomb: require("./modules/module_bomb.js"),
   size: require("./modules/module_fun.js").size,
-  zero: require("./modules/module_zero.js")
-  /*kill: require("./modules/module_personality.js").kill,
-  anagram: require("./modules/module_personality.js").anagram,*/
+  zero: require("./modules/module_zero.js"),
+  da: require("./modules/module_deviantart.js"),
+  e621: require("./modules/module_e621.js"),
+  bash: require("./modules/module_bash.js")
+
 }
 
 bot.on('message', processMessage);
@@ -757,6 +765,10 @@ function processMessage(user, userID, channelID, message, rawEvent) {
 
       if (!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
       logger.error(`>>> Line 758, UGLY FIX STILL IN PLACE. FIXFIXFIXFIX`)
+      var nsfwEnabled = false;
+      if((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW){
+        nsfwEnabled = true;
+      }
       commands[parsed.command].action(parsed.args, {
         "user": user,
         "userID": userID,
@@ -768,8 +780,8 @@ function processMessage(user, userID, channelID, message, rawEvent) {
         "logger": logger,
         "printError": printError,
         "logCommand": logCommand,
-        "recursiveSplitMessages": recursiveSplitMessages
-          //"auth": auth
+        "recursiveSplitMessages": recursiveSplitMessages,
+        "nsfwEnabled": nsfwEnabled
       });
       commands[parsed.command].lastTime = (new Date()).getTime();
       logCommand(channelID, user, parsed.command, parsed.args);
@@ -788,12 +800,13 @@ function processMessage(user, userID, channelID, message, rawEvent) {
 function parse(string, channelID) {
   var pieces = string.split(" ");
   pieces = pieces.filter(Boolean); // removes ""
+
   if (pieces[0] === undefined) return null;
-  var isPM = bot.serverFromChannel(channelID);
-  if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && pieces[0].toLowerCase() != config.listenTo && isPM != undefined) {
+  var isPM = bot.serverFromChannel(channelID) == undefined ? true : false;
+  if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && pieces[0].toLowerCase() != config.listenTo && !isPM) {
     return false
   }
-  if(isPM == undefined && pieces[0].toLowerCase() != config.listenTo){
+  if(isPM == true && pieces[0].toLowerCase() != config.listenTo){
     pieces.unshift(" ");
   }
   if (pieces[1] === undefined) return null;
@@ -801,7 +814,8 @@ function parse(string, channelID) {
 
   return {
     command: pieces[1].toLowerCase(),
-    args: pieces.slice(2, pieces.length)
+    args: pieces.slice(2, pieces.length),
+    isPM: isPM
   };
 }
 
