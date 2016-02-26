@@ -7,8 +7,11 @@ var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
-var commandRegister = require("./commandRegister");
-var command = new commandRegister();
+var CommandRegister = require("./core/CommandRegister");
+var command = new CommandRegister();
+var MessageObject = require("./core/MessageObject.js");
+var LiteBotWrapper = require("./core/DiscordBotLite.js");
+var _bot;
 
 process.argv.forEach(function (val, index, array) {
   if (val === "development") MODE = "development";
@@ -38,18 +41,9 @@ var away = [];
 ////
 var webConnecter = require("./modules/web/webModule.js");
 ////
-/*var myCustomLevels = {
-   levels: {
-     message: 4,
-     discordpm: 4
-   },
-   colors: {
-     message: 'cyan',
-     discordpm: 'yellow'
-   }
- };*/
-//logger.addColors(myCustomLevels.colors);
-var t = startTimeMs.toISOString().replace(/[:.]/gi, '-');
+
+var dt = new Date();
+var t = (dt.getDate() + "_" + (dt.getMonth() + 1) + "_" +  dt.getFullYear());
 var fname = './log/' + t + '.log';
 try {
     fs.mkdirSync('./log');
@@ -103,8 +97,11 @@ bot.on("ready", function (rawEvent) {
       "nsfwFilter": config.allowNSFW
     }
   }, bot);
-  var startupTime = Math.round((new Date()).getTime() - startTimeMs);
+  _bot = new LiteBotWrapper(bot);
   command.addModule(require("./modules/module_kitten.js"));
+  command.addModule(require("./modules/youtube/YoutubeFetch.js"));
+  command.addModule(require("./modules/youtube/VoiceHandler.js"));
+  var startupTime = Math.round((new Date()).getTime() - startTimeMs);
   logger.info(`It took ${startupTime} ms to initialize the bot.`)
 });
 
@@ -125,6 +122,7 @@ var commands = {
         to: e.channelID,
         message: "<@" + e.userID + "> Pong"
       }, function (error, response) {
+        if(error) return;
         var delay = Math.round((new Date()).getTime() - delayStart);
         bot.editMessage({
           channel: response.channel_id,
@@ -628,7 +626,7 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
   group: require("./modules/module_group.js"),
   greet: require("./modules/module_greetings.js"),
   message: require("./modules/module_message.js"),
-  nightcore: require("./modules/module_nightcore.js"),
+  nightcore: require("./modules/youtube/module_nightcore.js"),
   '9gag': require("./modules/module_9gag.js"),
   //kitten: require("./modules/module_kitten.js"),
   anime: require("./modules/module_animedb.js"),
@@ -707,7 +705,8 @@ function download(url, dest, cb) {
 
 
 function processMessage(user, userID, channelID, message, rawEvent) {
-  if (bot.serverFromChannel(channelID) == undefined) {
+  var serverID = bot.serverFromChannel(channelID);
+  if (serverID == undefined) {
     logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
 
   } else {
@@ -726,7 +725,9 @@ function processMessage(user, userID, channelID, message, rawEvent) {
   if((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW){
     nsfwEnabled = true;
   }
-  command.tryExec({
+  var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, {database: database, nsfwEnabled:nsfwEnabled, logger:logger});
+  command.tryExec(e
+    /*{
     "user": user,
     "userID": userID,
     "channelID": channelID,
@@ -739,7 +740,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     "logCommand": logCommand,
     "recursiveSplitMessages": recursiveSplitMessages,
     "nsfwEnabled": nsfwEnabled
-  }, parsed.command, parsed.args);
+  }*/, parsed.command, parsed.args);
   if (parsed.command == "eval") {
     if (userID != config.masterID) {
       bot.sendMessage({
@@ -984,6 +985,7 @@ function recursiveSplitMessages(e, channelID, msg, counter, lastLength) {
     to: channelID,
     message: currentSplice
   }, function (err, resp) {
+    if(err) logger.error("[RECURSIVE_SPLIT]_ERROR: " + err);
     if (counter < total) {
       recursiveSplitMessages(e, channelID, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
     }

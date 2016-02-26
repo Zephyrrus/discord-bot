@@ -1,5 +1,5 @@
 var logger = require("winston");
-
+//TODO: separate this into a module loader and command register. Module loader will load an object called "MODULE" which will be a special keyword and can't be used as command name
 
 var example = {
   "kitten": { // main command
