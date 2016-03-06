@@ -1,5 +1,5 @@
 /*
- * Special thanks to Windston (https://github.com/Windsdon) for letting me use parts of his code
+ * Special thanks to Windsdon (https://github.com/Windsdon) for letting me use parts of his code
  * Licensed under MIT
  */
 
@@ -13,9 +13,11 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
   this.channelID = channelID;
   this.message = message;
   this.rawEvent = rawEvent;
+  this.old = {};
   this.logger = functions.logger; // will be deprecated soon-ish
   this.database = functions.database; // will be deprecated soon-ish
   this.nsfw = functions.nsfwEnabled; // will be deprecated soon-ish
+  this.config = functions.config; // will be deprecated soon-ish
   //this.db = disco.db.getAccess(mod);
   this._prepend = "";
 

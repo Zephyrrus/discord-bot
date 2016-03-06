@@ -1,17 +1,17 @@
 var startTimeMs = new Date();
 /*Variable area*/
 const VERSION = require("./package.json").version;
-const BRANCH = "Database branch";
+const BRANCH = "Refactoring branch";
 var MODE = "production";
 var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
-var CommandRegister = require("./core/CommandRegister");
-var command = new CommandRegister();
+var path = require('path');
 var MessageObject = require("./core/MessageObject.js");
 var LiteBotWrapper = require("./core/DiscordBotLite.js");
 var _bot;
+var loaded = false;
 
 process.argv.forEach(function (val, index, array) {
   if (val === "development") MODE = "development";
@@ -43,19 +43,19 @@ var webConnecter = require("./modules/web/webModule.js");
 ////
 
 var dt = new Date();
-var t = (dt.getDate() + "_" + (dt.getMonth() + 1) + "_" +  dt.getFullYear());
+var t = (dt.getDate() + "_" + (dt.getMonth() + 1) + "_" + dt.getFullYear());
 var fname = './log/' + t + '.log';
 try {
-    fs.mkdirSync('./log');
-} catch(e) {
+  fs.mkdirSync('./log');
+} catch (e) {
 
 }
 
 logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {colorize: true});
+logger.add(logger.transports.Console, { colorize: true });
 logger.add(logger.transports.File, {
-    level: 'debug',
-    filename: fname
+  level: 'debug',
+  filename: fname
 });
 logger.level = 'debug';
 /*----------------------------------------------*/
@@ -65,7 +65,7 @@ bot.on("err", function (error) {
 });
 
 bot.on("ready", function (rawEvent) {
-  if (!fs.existsSync("./modules/cache")){
+  if (!fs.existsSync("./modules/cache")) {
     fs.mkdirSync("./modules/cache");
   }
   if (MODE == "development") {
@@ -98,9 +98,10 @@ bot.on("ready", function (rawEvent) {
     }
   }, bot);
   _bot = new LiteBotWrapper(bot);
-  command.addModule(require("./modules/module_kitten.js"));
-  command.addModule(require("./modules/youtube/YoutubeFetch.js"));
-  command.addModule(require("./modules/youtube/VoiceHandler.js"));
+  load(_bot);
+  _bot.cm.addModule(require("./modules/module_deleteme.js"));
+  _bot.cm.addModule(require("./modules/youtube/YoutubeFetch.js"));
+  _bot.cm.addModule(require("./modules/youtube/VoiceHandler.js"));
   var startupTime = Math.round((new Date()).getTime() - startTimeMs);
   logger.info(`It took ${startupTime} ms to initialize the bot.`)
 });
@@ -108,34 +109,7 @@ bot.on("ready", function (rawEvent) {
 /*----------------------------------------------*/
 
 var commands = {
-  ping: {
-    category: "misc",
-    description: "ping - the bot will reply with 'Pong!' and later with the delay between discord and the server",
-    permission: {
-      onlyMonitored: true
-    },
-    cooldown: config.globalcooldown,
-    lastTime: 0,
-    action: function (args, e) {
-      var delayStart = new Date().getTime();
-      e.bot.sendMessage({
-        to: e.channelID,
-        message: "<@" + e.userID + "> Pong"
-      }, function (error, response) {
-        if(error) return;
-        var delay = Math.round((new Date()).getTime() - delayStart);
-        bot.editMessage({
-          channel: response.channel_id,
-          messageID: response.id,
-          message: "<@" + e.userID + "> Pong\nNetwork delay: **" + delay + "** ms"
-        }, function (error, response) {
-          //console.log(response);
-        });
-      });
-      logger.debug("Ponged <@" + e.userID + ">");
-    }
-  },
-  status: {
+  setstatus: {
     category: "management",
     permission: {
       uid: [config.masterID],
@@ -413,7 +387,7 @@ var commands = {
     },
     helper: require("./modules/waifu/module_waifu.js"),
     action: function (args, e) {
-      if(e.userID == "108272892197806080") sendMessages(e, ["I am your waifu \u2764\u203F\u2764"]);
+      if (e.userID == "108272892197806080") sendMessages(e, ["I am your waifu \u2764\u203F\u2764"]);
       else {
         this.helper.action(args, e);
       }
@@ -438,15 +412,27 @@ var commands = {
         return;
       }
       var nsfw = database.nsfwChannels.indexOf(e.channelID) > -1 ? true : false;
-      sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "\n**\
-My current branch is: **" + BRANCH + "**\n\
-I been awake since **" + tm(startTime) + "**\n\
+      var channelCount = 0;
+      var userCount = 0;
+      for (var server in e._disco.bot.servers) {
+        channelCount += Object.keys(server.channels).length;
+        userCount += Object.keys(server.members).length;
+      }
+      /*sendMessages(e, ["My status is:\nMy current version is: **" + VERSION + "\n**\
+**My current branch is:** " + BRANCH + "\n\
+**I been awake since **" + tm(startTime) + "\n\
 I am in **" + MODE + "** mode right now.\n\
-My current uptime is: **" + getUptimeString() + "**\n\
-The global cooldown is set to **" + config.globalcooldown / 1000 + "** seconds\n\
+**My current uptime is: **" + getUptimeString() + "\n\
+**The global cooldown is set to **" + config.globalcooldown / 1000 + " seconds\n\
 Zephy is the best developer and I am the best catgirl \u2764\n\
-*whispers* Reddit adult mode filtering is right now set to : **" + !nsfw + "** in this channel (no NSFW if this is true)\n\
-Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
+*whispers* NSFW filtering is  **" + !nsfw + "** in this channel (no NSFW if this is true)\n\
+My theme song \"" + config.general.themeSong + "\" :3"]);*/
+      e.respond("My status is:\n\
+**Bot owner: ** <@" + config.general.masterID + "> [Zephy]\n\
+**Uptime:** " + tm(e._disco._startTime) + "\n\
+**Connected to: **" + Object.keys(e._disco.bot.servers).length + "servers, " + channelCount + " channels, " + userCount + " users\n\
+**Received messages: **" + receivedMessage || 0 + "\n\
+**Modules:**" + Object.keys(e.cm.modules).length + " and " + Object.keys(e.cm.commands).length + " **commands**")
     }
   },
   uptime: {
@@ -470,9 +456,9 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
       onlyMonitored: true
     },
     action: function (args, e) {
-      var result = "**Channels where I am right now:** [Count: **"+database.channels.length +"**]\n```\n"
-      for (var i=0; i < database.channels.length; i++){
-        result += (i+1 == database.channels.length ? database.channels[i] : database.channels[i] + ",");
+      var result = "**Channels where I am right now:** [Count: **" + database.channels.length + "**]\n```\n"
+      for (var i = 0; i < database.channels.length; i++) {
+        result += (i + 1 == database.channels.length ? database.channels[i] : database.channels[i] + ",");
       }
       result += "```";
       recursiveSplitMessages(e, e.userID, result);
@@ -520,19 +506,19 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
         }
         return;
       }
-        var result = "```\nCurrently loaded modules:\n";
-        for (var cmd in commands) {
-          if (commands[cmd]) {
-            if (commands[cmd].properties !== undefined && commands[cmd].properties.info !== undefined) {
-              result += "\t" + (commands[cmd].properties.info.name || "N/A") + " [" + (commands[cmd].properties.info.moduleName || "N/A") + "], " + "v" + (commands[cmd].properties.info.version || "N/A") + " " + "(by " + (commands[cmd].properties.info.author || "N/A") + ")" + "\n";
-            }
+      var result = "```\nCurrently loaded modules:\n";
+      for (var cmd in commands) {
+        if (commands[cmd]) {
+          if (commands[cmd].properties !== undefined && commands[cmd].properties.info !== undefined) {
+            result += "\t" + (commands[cmd].properties.info.name || "N/A") + " [" + (commands[cmd].properties.info.moduleName || "N/A") + "], " + "v" + (commands[cmd].properties.info.version || "N/A") + " " + "(by " + (commands[cmd].properties.info.author || "N/A") + ")" + "\n";
           }
         }
-        result += "``` \n There may be more modules loaded but their header is not properly set"
-        e.bot.sendMessage({
-          to: e.channelID,
-          message: result
-        });
+      }
+      result += "``` \n There may be more modules loaded but their header is not properly set"
+      e.bot.sendMessage({
+        to: e.channelID,
+        message: result
+      });
 
     }
   },
@@ -547,7 +533,7 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
 
       var databaseStructure = [
         { name: "id", type: "autonumber", primaryKey: true },
-        { name: "text", type: "string", required: true}
+        { name: "text", type: "string", required: true }
       ]
       if (args[0] == "dumptable") {
         var dbHandlerInstance = new databaseHandler(args[1]);
@@ -568,7 +554,7 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
           }
           recursiveSplitMessages(e, e.channelID, JSON.stringify(res, null, '\t'));
         });
-      } else if(args[0]=="migrate"){
+      } else if (args[0] == "migrate") {
         /*var database = new(require("./modules/database/databaseHandler.js"))('nightcore', databaseStructure);
         var count = 0;
         for (var child in e.db.nightcores) {
@@ -582,9 +568,9 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
           to: e.channelID,
           message: `<@${e.userID}> Finished migrating ${count} element from the **${args[1]}** database `
         });*/
-      }else if (args[0]=="add"){
+      } else if (args[0] == "add") {
         var database = new(require("./modules/database/databaseHandler.js"))('sqlinject', databaseStructure);
-        if(args[1]){
+        if (args[1]) {
           database.add([{ "text": args[1] }], function (err, res) {
             if (err) return (printError(e.channelID, err));
             else printError(e.channelID, res);
@@ -599,7 +585,7 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
     permission: {
       onlyMonitored: true
     },
-    action: function(args, e){
+    action: function (args, e) {
       if (!uidFromMention.test(args[0])) {
         e.bot.sendMessage({
           to: e.channelID,
@@ -608,13 +594,13 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
         return;
       }
 
-      try{
+      try {
         var mentionedUser = uidFromMention.exec(args[0])[1];
         e.bot.sendMessage({
           to: e.channelID,
           message: `<@${e.userID}> This is the mentioned user's current avatar:\nhttps://cdn.discordapp.com/avatars/${mentionedUser}/${e.rawEvent.d.mentions[0].avatar}.jpg`
         });
-      }catch(e){
+      } catch (e) {
 
       }
       return;
@@ -646,8 +632,6 @@ Listen to my theme song please \"" + config.general.themeSong + "\" :3"]);
   zero: require("./modules/module_zero.js"),
   da: require("./modules/module_deviantart.js"),
   e621: require("./modules/module_e621.js"),
-  bash: require("./modules/module_bash.js")
-
 }
 
 bot.on('message', processMessage);
@@ -704,17 +688,38 @@ function download(url, dest, cb) {
 };
 
 
+var banChecker = require("./modules/module_banning.js").isBanned;
+
 function processMessage(user, userID, channelID, message, rawEvent) {
   var serverID = bot.serverFromChannel(channelID);
-  if (serverID == undefined) {
-    logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
-
-  } else {
-    logger.verbose("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, '') + (rawEvent.d.attachments[0] !== undefined ? "[attachments: " + rawEvent.d.attachments[0].url + " ]":""));
-  }
   if (userID == bot.id) {
     return;
   }
+  if (serverID == undefined) {
+    logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
+    if (message.indexOf("discordapp.com") > -1 || message.indexOf("https://discord.gg/") > -1) {
+      var invite = message.split("/").pop();
+      if (invite.length > 5)
+        bot.acceptInvite(invite, function (err, res) {
+          if (err) {
+            bot.sendMessage({
+              to: channelID,
+              message: "Can't join that server. \n```javascript\n" + JSON.stringify(err, null, "\t") + "```"
+            })
+            return;
+          }
+          bot.sendMessage({
+            to: channelID,
+            message: "Joined server **" + res.guild.name + "**"
+          });
+          return;
+        });
+    }
+  } else {
+    logger.verbose("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, '') + (rawEvent.d.attachments[0] !== undefined ? "[attachments: " + rawEvent.d.attachments[0].url + " ]" : ""));
+  }
+
+  // new shit is here
 
   var parsed = parse(message, channelID);
   if (!parsed) {
@@ -722,25 +727,9 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     return;
   }
   var nsfwEnabled = false;
-  if((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW){
+  if ((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW) {
     nsfwEnabled = true;
   }
-  var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, {database: database, nsfwEnabled:nsfwEnabled, logger:logger});
-  command.tryExec(e
-    /*{
-    "user": user,
-    "userID": userID,
-    "channelID": channelID,
-    "rawEvent": rawEvent,
-    "bot": bot,
-    "db": database,
-    "config": config, //,
-    "logger": logger,
-    "printError": printError,
-    "logCommand": logCommand,
-    "recursiveSplitMessages": recursiveSplitMessages,
-    "nsfwEnabled": nsfwEnabled
-  }*/, parsed.command, parsed.args);
   if (parsed.command == "eval") {
     if (userID != config.masterID) {
       bot.sendMessage({
@@ -757,13 +746,36 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     } catch (e) {
       bot.sendMessage({
         to: channelID,
-        message: "Something went wrong! \n\n```" + e.message + "```"
+        message: "Something went wrong! \n\n```javascript\n" + e.stack + "```"
       });
     }
     return;
   }
+  banChecker(userID, function (result) {
+    if (result) {
+      bot.sendMessage({
+        to: uid,
+        message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@" + config.general.masterID + ">"
+      });
+      return;
+    }
+  // new module loader/executer
+  var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, { database: database, nsfwEnabled: nsfwEnabled, logger: logger, config: config });
+  _bot.cm.tryExec(e, parsed.command, parsed.args, function (err) {
+    if (err && err.errorcode == 1) bot.sendMessage({
+      to: channelID,
+      message: "<@" + userID + "> you are doing that too fast!"
+    });
+    else if(err) bot.sendMessage({
+      to: channelID,
+      message: "```javascript\n" + JSON.stringify(err, null, '\t') + "```"
+    });
+    if (!err) return;
+  });
+});
 
-  executeCommand(parsed.command, userID, channelID, function (err, res) {
+  // old shit
+  /*executeCommand(parsed.command, userID, channelID, function (err, res) {
     if (err) {
       logger.debug(err.error);
       logCommand(channelID, user, parsed.command, parsed.arguments, err.error);
@@ -788,7 +800,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
       if (!parsed.args[0]) parsed.args[0] = "" //ech, ugly fix for .toLowerCase breaking
       logger.error(`>>> Line 758, UGLY FIX STILL IN PLACE. FIXFIXFIXFIX`)
       var nsfwEnabled = false;
-      if((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW){
+      if ((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW) {
         nsfwEnabled = true;
       }
       commands[parsed.command].action(parsed.args, {
@@ -816,7 +828,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
         return;
       }
     }
-  });
+  });*/
 }
 
 function parse(string, channelID) {
@@ -825,10 +837,10 @@ function parse(string, channelID) {
 
   if (pieces[0] === undefined) return null;
   var isPM = bot.serverFromChannel(channelID) == undefined ? true : false;
-  if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && pieces[0].toLowerCase() != config.listenTo && !isPM) {
+  if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1 && !isPM) {
     return false
   }
-  if(isPM == true && pieces[0].toLowerCase() != config.listenTo){
+  if (isPM == true && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1) {
     pieces.unshift(" ");
   }
   if (pieces[1] === undefined) return null;
@@ -844,27 +856,21 @@ function parse(string, channelID) {
 
 function executeCommand(command, uid, channelID, callback) {
   var banChecker = require("./modules/module_banning.js").isBanned;
-  //var delayStart = new Date().getTime();
 
   banChecker(uid, function (result) {
-    /*  var delay = Math.round((new Date()).getTime() - delayStart);
-      bot.sendMessage({
-        to: channelID,
-        message: "Delay caused by SQL is: " + delay
-      });*/
     if (result) {
       bot.sendMessage({
         to: uid,
-        message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@"+ config.general.masterID + ">"
+        message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@" + config.general.masterID + ">"
       });
       return (callback && callback({ error: "User can't run the previous command because he is banned." }, false));
     }
 
 
     if (!commands[command]) {
-      if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
+      /*if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
         return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
-      }
+      }*/
       if (database.messages[command]) {
         return (callback && callback(null, true));
       }
@@ -877,17 +883,19 @@ function executeCommand(command, uid, channelID, callback) {
 
     if (!commands[command].permission) {
 
-      if (database.channels.indexOf(channelID) != -1) {
+      /*if (database.channels.indexOf(channelID) != -1) {
         return (callback && callback(null, true));
       } else {
         return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
-      }
+      }*/
+      return (callback && callback(null, true));
     }
 
     if (commands[command].permission.onlyMonitored) {
-      if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
+      /*if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
         return (callback && callback({ error: "User can't run the previous command because this command can be used only in channels what I monitor" }, false));
-      }
+      }*/
+      return (callback && callback(null, true));
     }
 
     if (!commands[command].permission.uid && !commands[command].permission.group) {
@@ -918,7 +926,7 @@ function tm(unix_tm) {
   return /*dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + */ dt;
 }
 
-function getUptimeString() {
+function getUptimeString(startTime) {
   var t = Math.floor((((new Date()).getTime() / 1000) - startTime)) * 1000;
   var uptime = "";
   var d, h, m, s;
@@ -985,7 +993,7 @@ function recursiveSplitMessages(e, channelID, msg, counter, lastLength) {
     to: channelID,
     message: currentSplice
   }, function (err, resp) {
-    if(err) logger.error("[RECURSIVE_SPLIT]_ERROR: " + err);
+    if (err) logger.error("[RECURSIVE_SPLIT]_ERROR: " + err);
     if (counter < total) {
       recursiveSplitMessages(e, channelID, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
     }
@@ -1021,4 +1029,41 @@ function printError(channelID, err) {
     message: "**Exception:** ```javascript\n" + JSON.stringify(err, null, '\t') + "```"
   });
 
+}
+
+function load(_disco) {
+  if (!loaded)
+    fs.readdir(config.core.pluginsFolder, function (err, filenames) {
+      if (err) {
+        logger.error("[LOAD]:" + err);
+        onError(err);
+        return;
+      }
+
+      for (var i = 0; i < filenames.length; i++) {
+        if (path.extname(filenames[i]) === '.js') {
+          try {
+            _disco.cm.addModule(require("./" + config.core.pluginsFolder + "/" + filenames[i]));
+          } catch (e) {
+            logger.error("[LOAD]: Failed loading file: " + filenames[i] + "\n" + e.stack);
+          }
+        }
+      }
+
+    });
+  loaded = true;
+}
+
+function _getFilesRecursive(dir, files_) {
+  files_ = files_ || [];
+  var files = fs.readdirSync(dir);
+  for (var i in files) {
+    var name = dir + '/' + files[i];
+    if (fs.statSync(name).isDirectory()) {
+      getFiles(name, files_);
+    } else {
+      files_.push(name);
+    }
+  }
+  return files_;
 }
