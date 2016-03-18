@@ -1,5 +1,17 @@
 module.exports = {
   decode: {
+    properties: {
+      "module": true,
+      "info": {
+        "description": "base64 converter",
+        "author": "TheEvilSocks",
+        "version": "1.0.0",
+        "importance": "addon",
+        "name": "Base64 Module",
+        "moduleName": "base64"
+      },
+      "requiresDB": false
+    },
     lastTime: 0,
     cooldown: 500,
     category: "misc",

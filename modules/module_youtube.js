@@ -1,4 +1,3 @@
-var fs = require('fs');
 var http = require('follow-redirects').https;
 if (GLOBAL.MODE === "production") {
   var auth = require('../configs/auth.json'); // or remove ./ for absolute path ^_^
@@ -19,7 +18,7 @@ module.exports = {
       res.on('end', function(){
           var response = JSON.parse(body);
           if(response.items[0] != undefined)
-            return callback(response.items[0].snippet.localized.title);
+            return callback({"title": response.items[0].snippet.localized.title, "tags": response.items[0].snippet.tags});
           else
             return callback(undefined);
       });

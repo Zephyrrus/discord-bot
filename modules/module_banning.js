@@ -1,9 +1,30 @@
 var uidFromMention = /<@([0-9]+)>/;
-
+var databaseStructure = [
+  { name: "id", type: "autonumber", primaryKey: true },
+  { name: "uid", type: "number", required: true },
+  { name: "reason", type: "string" },
+  { name: "addedDate", type: "datetime", required: true },
+  { name: "addedBy", type: "number", required: true }
+];
+var database = new(require("./database/databaseHandler.js"))('bans', databaseStructure);
 //ADD BAN FOR X TIME
 var config = require('../configs/config.json');
+
 module.exports = {
   ban: {
+    properties: {
+      "module": true,
+      "info": {
+        "description": "used for disable access of specific users to the bot.",
+        "author": "Zephy",
+        "version": "1.0.0",
+        "importance": "core",
+        "name": "Ban manager",
+        "moduleName": "ban"
+      },
+      "requiresDB": true,
+      databaseStructure: databaseStructure
+    },
     category: "management",
     description: ["admin ban <@mention> - bans the mentioned user", "admin unban <mention> - unbans the mentioned user", "admin list - send a private message with every ban"],
     permission: {
@@ -11,7 +32,7 @@ module.exports = {
       group: ['root', 'moderators'],
       onlyMonitored: true
     },
-    action: function(args, e) {
+    action: function (args, e) {
       if (args[0] == "ban") {
         if (!uidFromMention.test(args[1])) {
           e.bot.sendMessage({
@@ -27,6 +48,7 @@ module.exports = {
           for (var i = 2; i < args.length; i++) {
             reason += args[i] + ' ';
           }
+
         if (user == e.config.masterID) {
           e.bot.sendMessage({
             to: e.channelID,
@@ -34,55 +56,69 @@ module.exports = {
           });
           return;
         }
-        if (e.db.bans[user]) {
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  is already banned."
-          });
-          return;
-        }
-
-        //e.db.bans.push(uid: {'user': e.user, 'reason': reason || 'N/A'}});
-        //e.db.bans[user.toString()] = JSON.parse("{\"user\":\"" + args[1] + "\",\"reason\":\"" + reason + "\"}");
-        e.db.bans[user.toString()] = JSON.parse("{\"reason\":\"" + reason + "\"}");
-        e.bot.sendMessage({
-          to: e.channelID,
-          message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  has been banned with the reason `" + reason + "`"
+        database.find([{ "uid": user }], function (err, res) {
+          if (err) return (e.printError(e.channelID, err));
+          if (res.count > 0) {
+            e.bot.sendMessage({
+              to: e.channelID,
+              message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  is already banned."
+            });
+            return;
+          } else {
+            database.add([{ "uid": user }, { "reason": reason }, { "addedDate": Date() }, { "addedBy": e.userID }], function (err, res) {
+              if (err) return (e.printError(e.channelID, err));
+              e.bot.sendMessage({
+                to: e.channelID,
+                message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  has been banned with the reason `" + reason + "`"
+              });
+            });
+          }
         });
 
-        e.db.saveConfig("bans");
       } else if (args[0] == "unban") {
         var user = uidFromMention.exec(args[1])[1];
-
-        if (!e.db.bans[user]) {
-          e.bot.sendMessage({
-            to: e.channelID,
-            message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  is not banned."
-          });
-          return;
-        }
-
-        delete e.db.bans[user];
-
-        e.bot.sendMessage({
-          to: e.channelID,
-          message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  removed from the ban list."
+        database.find([{ "uid": user }], function (err, res) {
+          if (err) return (e.printError(e.channelID, err));
+          if (res.count < 1) {
+            e.bot.sendMessage({
+              to: e.channelID,
+              message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  is not banned."
+            });
+            return;
+          } else {
+            database.delete([{ "uid": user }], function (err, res) {
+              if (err) return (e.printError(e.channelID, err));
+              e.bot.sendMessage({
+                to: e.channelID,
+                message: "<@" + e.userID + "> user " + args[1] + " (" + user + ")  removed from the ban list."
+              });
+            })
+          }
         });
 
-        e.db.saveConfig("bans");
-      } else if (args[0] == "debug") {
-        console.log(e.db.bans);
       } else if (args[0] == "list") {
-        var str = "**Ban list:**\n\n";
-        var result = [];
-        for (var child in e.db.bans) {
-          result += child + " - " + e.db.bans[child].reason + "\n";
-        }
-        e.bot.sendMessage({
-          to: e.userID,
-          message: "<@" + e.userID + "> Here's my ban list: ```\n" + result + "```"
+        var result = "";
+        database.list(function (err, res) {
+          if (err) return (e.printError(e.channelID, err));
+          for (var i = 0; i < res.count; i++) {
+            result += res.result[i]['uid'] + " - " + res.result[i]['reason'] + "\n";
+          }
+          e.bot.sendMessage({
+            to: e.userID,
+            message: "<@" + e.userID + "> Here's my ban list: ```\n" + result + "```"
+          });
         });
       }
     }
+  },
+  isBanned: function (uid, callback) {
+    database.find([{ "uid": uid }], function (err, res) {
+      if (err) return (e.printError(e.channelID, err));
+      if (res.count > 0) {
+        return (callback && callback(true));
+      } else {
+        return (callback && callback(false));
+      }
+    });
   }
 }

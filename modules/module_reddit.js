@@ -9,7 +9,7 @@ else {
 var fs = require('fs');
 var http = require('follow-redirects').http;
 var reddit = new Snoocore({
-  userAgent: 'DiscordBot - Rin - Version 1.2.11', // unique string identifying the app
+  userAgent: 'DiscordBot - RayLen - Version 1.5.11', // unique string identifying the app
   throttle: 300,
   oauth: {
     type: 'script',
@@ -35,7 +35,8 @@ function getSubreddit(subreddit, NSFWFlag, callback) {
       if (r.test(child.data.url)) links.push({
         "title": child.data.title,
         "link": child.data.url,
-        "NSFW": child.data.over_18 || false
+        "NSFW": child.data.over_18 || false,
+        "permalink": child.data.permalink || "N/A"
       });
     }
   }
@@ -64,7 +65,8 @@ function randomInt(low, high) {
 
 function doReddit(args, e) {
   var arguments = args;
-  getSubreddit(arguments, e.config.allowNSFW, function(response) {
+
+  getSubreddit(arguments, e.nsfwEnabled, function(response) {
     e.bot.deleteMessage({
       channel: e.channelID,
       messageID: e.rawEvent.d.id
@@ -85,18 +87,26 @@ function doReddit(args, e) {
             e.bot.sendMessage({
               to: e.channelID,
               message: "<@" + e.userID + ">: **I am grabbing a random image from /r/" + args + " for you** \u2764",
-              //typing: true
-            }, function(response) { //CB Optional
+            }, function(err, response) {
               e.bot.uploadFile({
                 to: e.channelID,
-                file: fs.createReadStream(filename)
-              }, function(response) { //CB Optional
+                file: filename
+              }, function(error, response) {
+                if(error != undefined && error.indexOf("403") > -1){
+                  e.logger.error("[reddit] error: " + error);
+                   e.bot.sendMessage({
+                      to: e.channelID,
+                      message: "I don't have the permissions to upload files on this channel, here's the link to it: " + link,
+                    });
+                    return;
+                }else{
                 e.bot.sendMessage({
                   to: e.channelID,
-                  message: "Title: **" + responseReddit.title + "**",
-                  //typing: true
+                  message: "**Title**: " + responseReddit.title + "\n**Permalink**: reddit.com" + responseReddit.permalink,
                 });
                 if (e.config.deletereddit) fs.unlink(filename);
+                return;
+              }
               });
             });
           }
@@ -112,6 +122,18 @@ function doReddit(args, e) {
 }
 
 module.exports = {
+  properties: {
+    "module": true,
+    "info": {
+      "description": "grabs and posts random images from a specific subreddit",
+      "author": "Zephy",
+      "version": "1.0.0",
+      "importance": "addon",
+      "name": "Reddit poster",
+      "moduleName": "reddit"
+    },
+    "requiresDB": false,
+  },
   lastTime: 0,
   cooldown: 5000,
   category: "entertainment",
