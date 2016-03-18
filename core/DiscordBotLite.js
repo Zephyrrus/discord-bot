@@ -232,4 +232,13 @@ DiscordBot.prototype.getRoles = function (uid, sid) {
     return roles;
 };
 
+DiscordBot.prototype.setStatus = function(str, idle){
+  if(!str) str = "nothing";
+  if(!idle) idle = null;
+  this.bot.setPresence({
+      idle_since: idle,
+      game: str
+  });
+}
+
 module.exports = DiscordBot;

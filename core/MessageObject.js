@@ -16,7 +16,7 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
   this.old = {};
   this.logger = functions.logger; // will be deprecated soon-ish
   this.database = functions.database; // will be deprecated soon-ish
-  this.nsfw = functions.nsfwEnabled; // will be deprecated soon-ish
+  this.allowNSFW = functions.nsfwEnabled; // will be deprecated soon-ish
   this.config = functions.config; // will be deprecated soon-ish
   //this.db = disco.db.getAccess(mod);
   this._prepend = "";
@@ -171,10 +171,42 @@ MessageObject.prototype.pm = function (message, uid, callback) {
   return this;
 };
 
+MessageObject.prototype.respondLong = function(message, channelID, callback){
+  if (typeof (message) == "undefined") {
+    message = "";
+  }
+  if (typeof (message) == "string") {
+    message = this._prepend + message;
+  }
+  if (typeof (channelID) == "function"){
+    callback = channelID;
+    channelID = this.channelID;
+  } else if (!channelID){
+    channelID = this.channelID;
+  }
+  this._messageSplitter(this._disco, channelID, message);
+  return this;
+}
 
-MessageObject.prototype.respondLong = function (message, counter, lastLength) {
-  var self = this;
-  function _splitMessage(message, counter, lastLength){
+MessageObject.prototype.pmRespondLong = function(message, uid, callback){
+  if (typeof (message) == "undefined") {
+    message = "";
+  }
+  if (typeof (message) == "string") {
+    message = this._prepend + message;
+  }
+  if (typeof (uid) == "function"){
+    callback = uid;
+    uid = this.userID;
+  } else if (!uid){
+    uid = this.userID;
+  }
+  this._messageSplitter(this._disco, uid, message);
+  return this;
+}
+
+MessageObject.prototype._messageSplitter = function (_disco, channelID, message, counter, lastLength) {
+    var self = this;
     counter = counter || 1;
     var maxUncalculatedLength = 1900;
     var total = Math.ceil(message.length / maxUncalculatedLength);
@@ -183,20 +215,15 @@ MessageObject.prototype.respondLong = function (message, counter, lastLength) {
       aditionalLenght++;
     }
     var currentSplice = message.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
-    self._disco.queueMessage(self.channelID, currentSplice, function () {
+    _disco.queueMessage(channelID, currentSplice, function () {
       if (counter < total) {
-        respondLong(message, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
-      }
+        self._messageSplitter(_disco, channelID, message, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
+      }/*else{
+        callback && callback();
+      }*/
     });
-  }
-  if (typeof (message) == "undefined") {
-    message = "";
-  }
-  if (typeof (message) == "string") {
-    message = this._prepend + message;
-  }
-  _splitMessage(message);
-  return this;
+
+
 }
 
 module.exports = MessageObject;
