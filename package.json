@@ -1,6 +1,6 @@
 {
   "name": "discord-bot",
-  "version": "1.5.13",
+  "version": "1.7.0",
   "description": "Bot for discord chat based on discord.io",
   "main": "bot.js",
   "scripts": {
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Zephyrrus/discord-bot#readme",
   "dependencies": {
+    "async": "^1.5.2",
     "body-parser": "^1.14.2",
     "cheerio": "^0.20.0",
     "cookie-parser": "^1.4.0",
@@ -32,6 +33,7 @@
     "sqlite3": "^3.1.1",
     "winston": "^2.1.1",
     "ws": "^0.8.0",
-    "x-ray": "^2.0.3"
+    "x-ray": "^2.0.3",
+    "youtube-dl": "^1.10.5"
   }
 }
