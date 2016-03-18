@@ -1,7 +1,9 @@
 var logger = require("winston");
 var utils = require("./Utils.js");
 var config = require("../configs/config.json");
-var ParameterParser = require("./ArgumentObject.js")
+var ParameterParser = require("./ArgumentObject.js");
+var fs = require('fs');
+var path = require('path');
 
 var example = {
     "kitten": { // main command
@@ -19,6 +21,7 @@ var example = {
         ]
     }
 }
+
 
 function CommandRegister(disco) {
     this.commands = {};
@@ -67,11 +70,11 @@ CommandRegister.prototype.addModule = function (moduleObject) {
             return;
         }
         if (!currentKey.permission) {
-            logger.warn(`[CMD]: Command has no permissions defined, derived permission from name: '${currentKey.name}'.`);
+            //logger.warn(`[CMD]: Command has no permissions defined, derived permission from name: '${currentKey.name}'.`);
             currentKey.permission = currentKey.name;
         }
         if (!currentKey.helpMessage || !currentKey.category) {
-            logger.warn(`[CMD]: Command '${currentKey.name}' is missing important identifiers from it's header.`);
+            logger.warn(`[CMD]: Command '${currentKey.name}' is missing important identifiers from it's header. (`+ ((currentKey.helpMessage ? "":"helpMessage,") + (currentKey.category ? "":"category")) +`)`);
         }
 
         if (currentKey.params && !(currentKey.params instanceof Array)) {
@@ -104,7 +107,8 @@ CommandRegister.prototype.addModule = function (moduleObject) {
         }
         if (currentKey.child) {
 
-            command['child'] = [];
+            command['child'] = {};
+
             for (var j = 0; j < currentKey.child.length; j++) {
 
                 if (currentKey.child[j].handler) {
@@ -209,12 +213,27 @@ CommandRegister.prototype.getHelpCommand = function (cmd) {
     return help;
 }
 
-CommandRegister.prototype.getHelpPermission = function (uid) {
-    var help = [];
+CommandRegister.prototype.getHelpPermission = function (cmd, uid, sid) {
+    var help = {};
     if (!this.commands[cmd]) {
-        return (callback && callback({ errorcode: 404, error: "Command does not exist" }));
+        return "Command does not exist";
     }
-
+    if (this.disco.pm.canUser(uid, this.commands[cmd].permission, sid)) {
+        help.parent = { command: cmd, help: this.commands[cmd].helpMessage, arguments: this.commands[cmd].paramParser.getHelp() }
+        help.category = this.commands[cmd].category;
+        help.moduleID = this.commands[cmd].moduleID;
+        if (this.commands[cmd].child) {
+            help.child = [];
+            for (var i = 0; i < Object.keys(this.commands[cmd].child).length; i++) {
+                var currentChild = this.commands[cmd].child[Object.keys(this.commands[cmd].child)[i]];
+                  if(this.disco.pm.canUser(uid, currentChild.permission, sid)){
+                    help.child.push({ command: Object.keys(this.commands[cmd].child)[i], arguments: currentChild.paramParser.getHelp(), help: currentChild.helpMessage });
+                  }
+            }
+        }
+        return help;
+    }
+    return false;
 }
 
 CommandRegister.prototype.getPermission = function (cmd, arguments, cb) {
@@ -249,4 +268,27 @@ CommandRegister.prototype.canRun = function (e, permission) {
     }
     return true;
 }
+
+CommandRegister.prototype.load = function() {
+  var self =  this;
+    fs.readdir(config.core.pluginsFolder, function (err, filenames) {
+        if (err) {
+            logger.error("[LOAD]:" + err);
+            onError(err);
+            return;
+        }
+
+        for (var i = 0; i < filenames.length; i++) {
+            if (path.extname(filenames[i]) === '.js') {
+                try {
+                    self.addModule(require("../" + config.core.pluginsFolder + "/" + filenames[i]));
+                } catch (e) {
+                    logger.error("[LOAD]: Failed loading file: " + filenames[i] + "\n" + e.stack);
+                }
+            }
+        }
+
+    });
+}
+
 module.exports = CommandRegister;
