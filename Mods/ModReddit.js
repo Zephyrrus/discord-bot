@@ -45,7 +45,7 @@ function doReddit(e, args) {
         hostname: "api.reddit.com",
         path: "/r/" + args.sub + "?limit=100",
         headers: {
-            "User-Agent": "node:discord-reddit-mod:v0.1.0"
+            "User-Agent": "node:megu-reddit-bot:" + e._disco.version
         }
     }, function(res) {
         var body = '';
@@ -83,7 +83,7 @@ function doReddit(e, args) {
                 }
             });
 
-            if(posts.length == 0) {
+            if(posts.length === 0) {
                 e.mention().respond(`**No suitable posts on /r/${args.sub}**`);
                 return;
             }

@@ -171,7 +171,7 @@ function groupRoleList(e, args) {
     for (var rid in roles) {
       console.log(roles);
         if (roles.hasOwnProperty(rid)) {
-            str += `${rid} as ${roles[rid].name.replace("@", "[at]")}\n`
+            str += `${rid} as ${roles[rid].name.replace("@", "[at]")}\n`;
         }
     }
 
@@ -204,27 +204,27 @@ function permissions(e, args) {
       }
       var str = "```Listing permissions for command: " + id + "\n";
       var list = [];
-      list.push(id + " - " + e._disco.cm.commands[id].permission)
+      list.push(id + " - " + e._disco.cm.commands[id].permission);
       if(e._disco.cm.commands[id].child){
         for(var child in e._disco.cm.commands[id].child){
-          list.push(id + " " + child + " - " + e._disco.cm.commands[id].child[child].permission)
+          list.push(id + " " + child + " - " + e._disco.cm.commands[id].child[child].permission);
         }
 
       }
       str += "\t" + list.join("\n\t") + "";
 
       str += "```";
-      e.respond("Listing permission for command: " + str)
+      e.respond("Listing permission for command: " + str);
     } else {
         var str = "```Listing permissions on each plugin\n\n";
         for (var command in e._disco.cm.commands) {
             if (e._disco.cm.commands[command]) {
-                str += `${command}\n`
+                str += `${command}\n`;
                 var list = [];
-                list.push(command + " - " + e._disco.cm.commands[command].permission)
+                list.push(command + " - " + e._disco.cm.commands[command].permission);
                 if(e._disco.cm.commands[command].child){
                   for(var child in e._disco.cm.commands[command].child){
-                    list.push(command + " " + child + " - " + e._disco.cm.commands[command].child[child].permission)
+                    list.push(command + " " + child + " - " + e._disco.cm.commands[command].child[child].permission);
                   }
 
                 }
@@ -512,4 +512,4 @@ module.exports = {
             required: false
         }]
     }
-}
+};

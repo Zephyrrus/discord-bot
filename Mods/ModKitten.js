@@ -20,7 +20,7 @@ function doKitten(e, args) {
               file: body,
               filename: filename
           });
-        })//.respondFile(body);
+        }); //.respondFile(body);
     });
     });
   }).on('error', function (e) {
@@ -44,4 +44,4 @@ module.exports = {
     handler: doKitten,
     cooldown: 5000
   }
-}
+};

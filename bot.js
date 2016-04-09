@@ -104,6 +104,7 @@ bot.on("ready", function (rawEvent) {
 });
 
 
+bot.on('guildMemberAdd', doWelcome);
 
 bot.on('message', processMessage);
 
@@ -112,7 +113,8 @@ bot.on("presence", function (user, userID, status, rawEvent) {
 });
 
 bot.on("debug", function (rawEvent) {
-    //console.log(rawEvent) //Logs every event
+    //var black = ["TYPING_START", "MESSAGE_CREATE", "PRESENCE_UPDATE", "USER_UPDATE"];
+    //if(black.indexOf(rawEvent.t) < 0) console.log(rawEvent) //Logs every event
 });
 
 bot.on("disconnected", function () {
@@ -168,7 +170,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     }
     if (serverID == undefined) {
         logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
-        if (message.indexOf("discordapp.com") > -1 || message.indexOf("https://discord.gg/") > -1) {
+        if (message.indexOf("discordapp.com") > -1 || message.indexOf("discord.gg") > -1) {
             var invite = message.split("/").pop();
             if (invite.length > 5)
                 bot.acceptInvite(invite, function (err, res) {
@@ -231,7 +233,7 @@ function processMessage(user, userID, channelID, message, rawEvent) {
             return;
         }
         // new module loader/executer
-        var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, { database: database, nsfwEnabled: nsfwEnabled, logger: logger, config: config });
+        var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, { database: database, nsfwEnabled: nsfwEnabled, logger: logger, config: config, isPM: parsed.isPM });
         _bot.cm.tryExec(e, parsed.command, parsed.args, function (err) {
             if (err && err.errorcode == 1) bot.sendMessage({
                 to: channelID,
@@ -255,11 +257,11 @@ function parse(string, channelID) {
     pieces = pieces.filter(Boolean); // removes ""
 
     if (pieces[0] === undefined) return null;
-    var isPM = bot.serverFromChannel(channelID) == undefined ? true : false;
+    var isPM = bot.serverFromChannel(channelID) === undefined ? true : false;
     if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1 && !isPM) {
-        return false
+        return false;
     }
-    if (isPM == true && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1) {
+    if (isPM === true && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1) {
         pieces.unshift(" ");
     }
     if (pieces[1] === undefined) return null;
@@ -270,74 +272,6 @@ function parse(string, channelID) {
         args: pieces.slice(2, pieces.length),
         isPM: isPM
     };
-}
-
-
-function executeCommand(command, uid, channelID, callback) {
-    var banChecker = require("./modules/module_banning.js").isBanned;
-
-    banChecker(uid, function (result) {
-        if (result) {
-            bot.sendMessage({
-                to: uid,
-                message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@" + config.general.masterID + ">"
-            });
-            return (callback && callback({ error: "User can't run the previous command because he is banned." }, false));
-        }
-
-
-        if (!commands[command]) {
-            /*if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-              return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
-            }*/
-            if (database.messages[command]) {
-                return (callback && callback(null, true));
-            }
-            if (database.images[command]) {
-                return (callback && callback(null, true));
-            }
-            return (callback && callback({ error: "User can't run the previous command because I don't know it." }, false));
-        }
-
-
-        if (!commands[command].permission) {
-
-            /*if (database.channels.indexOf(channelID) != -1) {
-              return (callback && callback(null, true));
-            } else {
-              return (callback && callback({ error: "User can't run the previous command because I am not listening in this channel." }, false));
-            }*/
-            return (callback && callback(null, true));
-        }
-
-        if (commands[command].permission.onlyMonitored) {
-            /*if (database.channels.indexOf(channelID) == -1 && bot.serverFromChannel(channelID) != undefined) {
-              return (callback && callback({ error: "User can't run the previous command because this command can be used only in channels what I monitor" }, false));
-            }*/
-            return (callback && callback(null, true));
-        }
-
-        if (!commands[command].permission.uid && !commands[command].permission.group) {
-            return (callback && callback(null, true));
-        }
-
-        if (commands[command].permission.uid) {
-            for (var i = 0; i < commands[command].permission.uid.length; i++) {
-                if (uid == commands[command].permission.uid[i]) {
-                    return (callback && callback(null, true));
-                }
-            }
-        }
-
-        if (commands[command].permission.group) {
-            for (var i = 0; i < commands[command].permission.group.length; i++) {
-                if (database.isUserInGroup(uid, commands[command].permission.group[i])) {
-                    return (callback && callback(null, true));
-                }
-            }
-        }
-        return (callback && callback({ error: "User can't run the command because it has no permission or idk" }, false));
-    });
 }
 
 function tm(unix_tm) {
@@ -356,10 +290,10 @@ function getUptimeString(startTime) {
     m = m % 60;
     d = Math.floor(h / 24);
     h = h % 24;
-    d != 0 ? uptime += d + " days " : null;
-    h != 0 ? uptime += h + " hours " : null;
-    m != 0 ? uptime += m + " minutes " : null;
-    s != 0 ? uptime += s + " seconds " : null;
+    d !== 0 ? uptime += d + " days " : null;
+    h !== 0 ? uptime += h + " hours " : null;
+    m !== 0 ? uptime += m + " minutes " : null;
+    s !== 0 ? uptime += s + " seconds " : null;
     logger.debug({
         t: t,
         d: d,
@@ -464,4 +398,20 @@ function _getFilesRecursive(dir, files_) {
         }
     }
     return files_;
+}
+
+function doWelcome(rawEvent) {
+    if (rawEvent.d.guild_id == '161871321670746112') {
+        bot.addToRole({
+            server: rawEvent.d.guild_id,
+            user: rawEvent.d.user.id,
+            role: '161897607650607104'
+        }, function(err,res){
+          bot.sendMessage({
+              to: '161871321670746112',
+              message: `**EXPLOSION!~**\n\nWelcome <@${rawEvent.d.user.id}> to the server. You have been assigned *member* rank by me.\nHave fun and please enjoy your stay.`
+          });
+        });
+
+    }
 }

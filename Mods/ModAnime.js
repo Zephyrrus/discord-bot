@@ -39,7 +39,7 @@ function doAnime(e, args){
         }
 
         if (anime.status) {
-          resultString += "**Current Status:** " + anime.status + "\n"
+          resultString += "**Current Status:** " + anime.status + "\n";
         }
 
 
@@ -64,7 +64,7 @@ function doAnime(e, args){
         }
 
         if (anime.community_rating) {
-          resultString += "**Average Rating:** " + parseFloat(anime.community_rating).toFixed(2) + "\n"
+          resultString += "**Average Rating:** " + parseFloat(anime.community_rating).toFixed(2) + "\n";
         }
 
         if (anime.age_rating) {
@@ -73,7 +73,7 @@ function doAnime(e, args){
         }
 
         if (anime.genres) {
-          resultString += "**Genres: **"
+          resultString += "**Genres: **";
           for(var gen of anime.genres)
             resultString += gen.name + ", ";
           resultString += "\n";
@@ -100,7 +100,7 @@ module.exports = {
     moduleName: "Anime searcher",
     version: "1.0.6",
     author: "Zephy",
-    description: "searches for information about any anime on the humminbird.me website",
+    description: "searches for information about any anime on the hummingbird.me website",
   },
   "anime": {
     permission: "anime",
@@ -114,4 +114,4 @@ module.exports = {
         required: true
     }]
   }
-}
+};

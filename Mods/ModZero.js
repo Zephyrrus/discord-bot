@@ -49,7 +49,7 @@ function zeroGrab(e, args) {
                     //e.mention().respond(`Assuming ${args.name} reffers to ${path.replace(/\//g, '').replace(/\+/g, ' ')}`);
                     e._disco.bot.sendMessage({
                       to: e.channelID,
-                      message: `Assuming ${args} reffers to ${decodeURIComponent(path.replace(/\//g, '').replace(/\+/g, ' '))}`
+                      message: `Assuming ${args.character} reffers to ${decodeURIComponent(path.replace(/\//g, '').replace(/\+/g, ' '))}`
                     }, function(err, resp){
                       getPage("http://zerochan.net" + path, callback);
                     });
