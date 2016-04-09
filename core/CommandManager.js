@@ -5,24 +5,6 @@ var ParameterParser = require("./ArgumentObject.js");
 var fs = require('fs');
 var path = require('path');
 
-var example = {
-    "kitten": { // main command
-        handler: "doKitten", // main function (can be undefined if it has child commands)
-        permission: "kitten", // permission to use main function (will be unused later, perm will be derived from command name)
-        description: "random kitten poster", // module description
-        author: "Zephy", // author
-        version: "1.1.0", // version
-        moduleName: "Kitten poster", // module name to show up nicer in loaded  modules
-        databaseStructure: "databaseStructure", // gud ol database structure
-        helpMessage: "Test",
-        child: [ // subcommands
-            { name: "add", handler: "addNightcore", permission: "add", helpMessage: "<youtubeID> - add a youtube shit to the db" }, // first subcommand
-            { name: "list", handler: "listNightcores", permission: "list", helpMessage: "<youtubeID> - creates a playlist of the shits" } // second subcommand
-        ]
-    }
-}
-
-
 function CommandRegister(disco) {
     this.commands = {};
     this.cooldowns = [];
