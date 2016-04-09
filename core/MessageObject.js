@@ -5,24 +5,23 @@
 
 function MessageObject(disco, mod, serverID, user, userID, channelID, message, rawEvent, functions) {
   this._disco = disco;
-  //this._mod = mod;
-  //this.mod = disco.plugins.plugins[mod];
   this.serverID = serverID;
   this.user = user;
   this.userID = userID;
   this.channelID = channelID;
   this.message = message;
   this.rawEvent = rawEvent;
-  this.old = {};
   this.logger = functions.logger; // will be deprecated soon-ish
   this.database = functions.database; // will be deprecated soon-ish
+  this.flags = {};
+  this.flags.nsfwEnabled = functions.nsfwEnabled;
+  this.flags.isPM = functions.isPM;
   this.allowNSFW = functions.nsfwEnabled; // will be deprecated soon-ish
   this.config = functions.config; // will be deprecated soon-ish
-  //this.db = disco.db.getAccess(mod);
   this._prepend = "";
 
   if (rawEvent && rawEvent._extend) {
-    for (i in rawEvent._extend) {
+    for (var i in rawEvent._extend) {
       this[i] = rawEvent._extend[i];
     }
   }
@@ -63,13 +62,13 @@ MessageObject.prototype.text = function (message) {
 };
 
 MessageObject.prototype.code = function (message, lang) {
-  this._prepend += "```"
+  this._prepend += "```";
   if (typeof (lang) == "string") {
     this._prepend += lang;
   }
   this._prepend += "\n";
   this._prepend += message;
-  this._prepend += "\n```\n"
+  this._prepend += "\n```\n";
 
   return this;
 };
@@ -80,8 +79,12 @@ MessageObject.prototype.n = function () {
   return this;
 };
 
-MessageObject.prototype.getName = function (uid) {
-  return this._disco.getUserName(uid);
+MessageObject.prototype.getName = function (uid, noEscape) {
+     if(noEscape) {
+         return this._disco.getUserName(uid);
+     } else {
+         return this.clean(this._disco.getUserName(uid));
+     }
 };
 
 MessageObject.prototype.getUser = function (uid, sid) {
@@ -186,7 +189,7 @@ MessageObject.prototype.respondLong = function(message, channelID, callback){
   }
   this._messageSplitter(this._disco, channelID, message);
   return this;
-}
+};
 
 MessageObject.prototype.pmRespondLong = function(message, uid, callback){
   if (typeof (message) == "undefined") {
@@ -203,7 +206,7 @@ MessageObject.prototype.pmRespondLong = function(message, uid, callback){
   }
   this._messageSplitter(this._disco, uid, message);
   return this;
-}
+};
 
 MessageObject.prototype._messageSplitter = function (_disco, channelID, message, counter, lastLength) {
     var self = this;
@@ -222,8 +225,25 @@ MessageObject.prototype._messageSplitter = function (_disco, channelID, message,
         callback && callback();
       }*/
     });
+};
 
+/**
+* Escapes @, *, _, ~, # and `
+*/
+MessageObject.prototype.clean = function (text) {
+    text = text || "";
+    try {
+        return text.replace(/[#@`*_~]/g, "\\$&");
+    } catch(err) {
+        return "";
+    }
+};
 
+MessageObject.prototype.canUser = function(permissions, uid, sid) {
+    uid = uid || this.userID;
+    sid = sid || this.serverID;
+
+    return this._disco.pm.canUser(uid, permissions, sid);
 }
 
 module.exports = MessageObject;

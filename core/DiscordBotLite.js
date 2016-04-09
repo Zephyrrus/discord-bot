@@ -35,46 +35,52 @@ DiscordBot.prototype.getServerID = function (channelID) {
 
 DiscordBot.prototype.getOutbound = function (channelID) {
     var self = this;
-
     function trySend(task, callback, attempts) {
-        if (!attempts) {
+        if(!attempts) {
             attempts = 0;
         }
-        if (task.message) {
-            if (task.message.length >= 2000) {
-                var warn = "*This message was longer than 2000 characters and has been reduced*\n ";
-                task.message = warn + task.message.substring(0, 2000 - warn.length - 1);
+        if(task.message) {
+            if(task.message.length >= 2000) {
+                var warn = "**This message was longer than 2000 characters and has been split**\n\n";
+                var parts = self.splitMessage(warn + task.message, 1990);
+                logger.debug("Split message into " + parts.length + " parts.");
+                parts.forEach(function(v) {
+                    self.queueMessage(channelID, v);
+                });
+                callback();
+                return;
             }
-            self.bot.sendMessage(task, function (err, response) {
-                if (err) {
-                    if (err.statusCode == 429) { // ratelimited
+            self.bot.sendMessage(task, function(err, response) {
+                if(err) {
+                    logger.warn(err);
+                    if(err.statusCode == 429) { // ratelimited
                         logger.warn("Rate limited! Attempt #" + attempts);
-                        setTimeout(function () {
-                            trySend(task, callback, attempts++);
+                        setTimeout(function() {
+                            trySend(task, callback,  attempts++);
                         }, (err.retry_after || 0) + 1000);
                         return;
-                    }else{
-                      logger.error("[SEND_MESSAGE]: " + JSON.stringify(err));
                     }
                 }
                 callback(err, response);
             });
-        } else if (task.file) {
-            self.bot.uploadFile(task, function (err, response) {
-                if (err) { // rate limited!
+        } else if(task.file) {
+            self.bot.uploadFile(task, function(err, response) {
+                if(err) {
                     logger.warn(err);
-                    logger.warn("Rate limited! Attempt #" + attempts);
-                    setTimeout(function () {
-                        trySend(task, callback, attempts++);
-                    }, (err.retry_after || 0) + 1000);
-                    return;
+                    if(err.statusCode == 429) { // ratelimited
+                        logger.warn("Rate limited! Attempt #" + attempts);
+                        setTimeout(function() {
+                            trySend(task, callback,  attempts++);
+                        }, (err.retry_after || 0)  + 1000);
+                        return;
+                    }
                 }
                 callback(err, response);
             });
         }
     }
-    if (!this.outbound[channelID]) {
-        this.outbound[channelID] = async.queue(trySend, 1);
+    if(!this.outbound[channelID]) {
+        this.outbound[channelID] = async.queue(trySend, 1);;
     }
 
     return this.outbound[channelID];
@@ -116,7 +122,7 @@ DiscordBot.prototype.getUserName = function (uid) {
             for (var member in this.bot.servers[sid].members) {
                 if (this.bot.servers[sid].members.hasOwnProperty(member)) {
                     if (member == uid) {
-                        return this.bot.servers[sid].members[member].user.username
+                        return this.bot.servers[sid].members[member].user.username;
                     }
                 }
             }
@@ -169,15 +175,15 @@ DiscordBot.prototype.getRole = function (rid, sid) {
         if (!this.bot.servers[sid]) {
             return null;
         } else {
-            return this.bot.servers[sid].roles[mrid] || null;
+            return this.bot.servers[sid].roles[rid] || null;
         }
     } else {
-        for (var sid in this.bot.servers) {
-            if (this.bot.servers.hasOwnProperty(sid)) {
-                for (var mrid in this.bot.servers[sid].roles) {
-                    if (this.bot.servers[sid].roles.hasOwnProperty(mrid)) {
+        for (var _sid in this.bot.servers) {
+            if (this.bot.servers.hasOwnProperty(_sid)) {
+                for (var mrid in this.bot.servers[_sid].roles) {
+                    if (this.bot.servers[_sid].roles.hasOwnProperty(mrid)) {
                         if (mrid == rid) {
-                            return this.bot.servers[sid].roles[mrid];
+                            return this.bot.servers[_sid].roles[mrid];
                         }
                     }
                 }
@@ -193,14 +199,14 @@ DiscordBot.prototype.getRoles = function (uid, sid) {
         if (!uid) {
             return null;
         } else {
-            for (var sid in this.bot.servers) {
-                if (this.bot.servers.hasOwnProperty(sid)) {
-                    for (var muid in this.bot.servers[sid].members) {
-                        if (this.bot.servers[sid].members.hasOwnProperty(muid)) {
+            for (var _sid in this.bot.servers) {
+                if (this.bot.servers.hasOwnProperty(_sid)) {
+                    for (var muid in this.bot.servers[_sid].members) {
+                        if (this.bot.servers[_sid].members.hasOwnProperty(muid)) {
                             if (muid == uid) {
-                                this.bot.servers[sid].members[muid].roles.forEach(function (v) {
+                                this.bot.servers[_sid].members[muid].roles.forEach(function (v) {
                                     if (!roles[v]) {
-                                        roles[v] = self.getRole(v, sid);
+                                        roles[v] = self.getRole(v, _sid);
                                     }
                                 });
                             }
@@ -215,15 +221,15 @@ DiscordBot.prototype.getRoles = function (uid, sid) {
     if (!this.bot.servers[sid]) {
         return null;
     }
-    if (uid == null) {
+    if (uid === null) {
         for (var mrid in this.bot.servers[sid].roles) {
             roles[mrid] = this.bot.servers[sid].roles[mrid];
         }
         return roles;
     }
-    for (var uid in this.bot.servers[sid].members) {
+    for (var _uid in this.bot.servers[sid].members) {
         if (this.bot.servers[sid].members.hasOwnProperty(uid)) {
-            this.bot.servers[sid].members[uid].forEach(function (v) {
+            this.bot.servers[sid].members[_uid].forEach(function (v) {
                 roles[v] = self.getRole(v, sid);
             });
         }
@@ -239,6 +245,50 @@ DiscordBot.prototype.setStatus = function(str, idle){
       idle_since: idle,
       game: str
   });
+};
+
+DiscordBot.prototype.splitMessage = function(message, chunkSize) {
+    chunkSize = chunkSize || 1990;
+    var preChunks = [];
+    message.split("\n").forEach(function(v) {
+        if(v.length < chunkSize) {
+            preChunks.push(v);
+        } else {
+            var vParts = [""];
+            v.split(" ").forEach(function(vv) {
+                if(vv.length > chunkSize) {
+                    var vvParts = vv.match(new RegExp('.{1,' + chunkSize + '}', 'g'));
+                    vParts = vParts.concat(vvParts);
+                } else {
+                    if(vParts[vParts.length - 1].length + vv.length < chunkSize) {
+                        vParts[vParts.length - 1] += " " + vv
+                    } else {
+                        vParts.push(vv);
+                    }
+                }
+            });
+            vParts.forEach(function(v) {
+                preChunks.push(v);
+            });
+        }
+    });
+
+    var chunks = [""];
+    while(preChunks.length > 0) {
+        var str = preChunks.shift();
+        if(chunks[chunks.length - 1].length + str.length < chunkSize) {
+            chunks[chunks.length - 1] += str + "\n";
+        } else {
+            if(/```/gi.test(chunks[chunks.length - 1])) {
+                chunks[chunks.length - 1] += "```";
+                chunks.push("```" + str + "\n");
+            } else {
+                chunks.push(str + "\n");
+            }
+        }
+    }
+
+    return chunks;
 }
 
 module.exports = DiscordBot;

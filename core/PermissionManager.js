@@ -64,7 +64,7 @@ PermissionManager.prototype.load = function(callback) {
             try{
               e.permissions = JSON.parse(e.permissions);
               e.roles = JSON.parse(e.roles);
-            }catch(e){
+            }catch(exception){
               logger.error("[PERM_SYSTEM_GROUP]: Can't parse " + e.permissions);
               logger.error("[PERM_SYSTEM_GROUP]: Can't parse " + e.roles);
             }
@@ -87,7 +87,7 @@ PermissionManager.prototype.load = function(callback) {
                 delete e["id"];
                 try{
                   e.groups = JSON.parse(e.groups);
-                }catch(e){
+                }catch(exception){
                   logger.error("[PERM_SYSTEM_USER]: Can't parse " + e.groups)
                 }
                 self.userCache[e.uid] = e;
@@ -178,7 +178,7 @@ PermissionManager.prototype._canGroup = function(group, permissions) {
         var pp = perm.split(".");
         var result = false;
         var depth = 0;
-        for(i in group.permissions) {
+        for(var i in group.permissions) {
             var gp = group.permissions[i];
             var deny = false;
 
@@ -197,7 +197,7 @@ PermissionManager.prototype._canGroup = function(group, permissions) {
             if(gp.length > pp.length || (gp.length != pp.length && gp[gp.length - 1] != "*")) {
                 related = false;
             } else {
-                for(j in gp) {
+                for(var j in gp) {
                     if(pp[j] != gp[j] && gp[j] != "*") {
                         related = false;
                         break;

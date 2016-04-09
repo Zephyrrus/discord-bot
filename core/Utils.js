@@ -54,7 +54,7 @@ module.exports = {
             do {
                 variation++;
                 result = result.substring(0,result.length-1) + variation;
-            } while (blacklist.indexOf(result) >= 0)
+            } while (blacklist.indexOf(result) >= 0);
         }
         return result;
     },
