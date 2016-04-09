@@ -17,6 +17,7 @@ module.exports = {
   },
   "flipn": {
     helpMessage: "Flips N times and shows you how many times every option was selected",
+    permission: "flip.bestof",
     category: "Helpers",
     handler: doflipN,
     params: [{
