@@ -3,7 +3,7 @@
  * Licensed under MIT
  */
 
-function MessageObject(disco, mod, serverID, user, userID, channelID, message, rawEvent, functions) {
+function MessageObject(disco, mod, serverID, user, userID, channelID, message, rawEvent, configs, functions, flags) {
   this._disco = disco;
   this.serverID = serverID;
   this.user = user;
@@ -11,15 +11,22 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
   this.channelID = channelID;
   this.message = message;
   this.rawEvent = rawEvent;
-  this.logger = functions.logger; // will be deprecated soon-ish
-  this.database = functions.database; // will be deprecated soon-ish
-  this.flags = {};
-  this.flags.nsfwEnabled = functions.nsfwEnabled;
-  this.flags.isPM = functions.isPM;
-  this.allowNSFW = functions.nsfwEnabled; // will be deprecated soon-ish
-  this.config = functions.config; // will be deprecated soon-ish
-  this._prepend = "";
+  this.command = configs.command;
 
+  this.database = configs.database; // will be deprecated soon-ish
+  this.language = configs.language;
+  this.config = configs.config; // will be deprecated soon-ish
+
+  this.logger = functions.logger; // will be deprecated soon-ish
+
+  this.flags = {};
+  this.flags.nsfwEnabled = flags.nsfwEnabled;
+  this.allowNSFW = flags.nsfwEnabled; // will be deprecated soon-ish
+  this.flags.isPM = flags.isPM;
+
+  this._prepend = "";
+  this._postpend = "";
+  
   if (rawEvent && rawEvent._extend) {
     for (var i in rawEvent._extend) {
       this[i] = rawEvent._extend[i];
@@ -65,6 +72,9 @@ MessageObject.prototype.code = function (message, lang) {
   this._prepend += "```";
   if (typeof (lang) == "string") {
     this._prepend += lang;
+  }
+  if(typeof (message) == "object"){
+    message = JSON.stringify(message);
   }
   this._prepend += "\n";
   this._prepend += message;
