@@ -30,9 +30,12 @@ module.exports = {
         helpMessage: "the bot will repeat your message.",
         category: "Misc",
         handler: echo,
-        child: [
-            { name: "-h", handler: echoH, helpMessage: "the bot will repeat your message (without mentioning you)", permission: "echo.hide" },
-        ]
+        child: [{
+            name: "-h",
+            handler: echoH,
+            helpMessage: "the bot will repeat your message (without mentioning you)",
+            permission: "echo.hide"
+        }, ]
     },
     "purge": {
         helpMessage: "Purge messages on the current channel. --all overrides count.",
@@ -56,18 +59,23 @@ module.exports = {
             type: "mention",
             required: false
         }]
+    },
+    "come": {
+        helpMessage: "Generates an invite link for the bot.",
+        category: "admin",
+        handler: generateInvite
     }
 };
 
 function ping(e, args) {
     var _delay;
-    e.mention().respond("Pong!", function (err, res) {
+    e.mention().respond(e.language.ping.main, function(err, res) {
         if (err) return;
         _delay = new Date(res.timestamp).getTime() - new Date(e.rawEvent.d.timestamp).getTime();
         e._disco.bot.editMessage({
             channel: res.channel_id,
             messageID: res.id,
-            message: "<@" + e.userID + "> Pong\nNetwork delay: **" + _delay + "** ms"
+            message: "<@" + e.userID + "> " + e.language.ping.main + "\n" + e.language.ping.delay + " **" + _delay + "** ms"
         });
     });
 }
@@ -75,7 +83,7 @@ function ping(e, args) {
 function getID(e, args) {
     if (args.param) {
         if (args.param.toLowerCase() == "channel") {
-            e.respond("Channel ID => `" + e.channelID + "`")
+            e.respond("Channel ID => `" + e.channelID + "`");
         } else if (args.param.toLowerCase() == "server") {
             e.respond("Server ID => `" + e._disco.bot.serverFromChannel(e.channelID) + "`");
         } else if (args.param.indexOf("<@") > -1 && args.param.indexOf(">") > -1) {
@@ -107,14 +115,14 @@ function purge(e, args) {
                 authorization: e._disco.bot.internals.token
             }
         }, function(err, response, body) {
-            if(err) {
+            if (err) {
                 callback(err);
                 return;
             }
 
             var data = JSON.parse(body);
 
-            if(args.user) {
+            if (args.user) {
                 data = data.filter(function(v) {
                     return v.author.id == args.user;
                 });
@@ -124,16 +132,17 @@ function purge(e, args) {
 
             var q = async.queue(function(message, cb) {
                 logger.verbose("Delete message: " + message.id + " from: " + message.author.id);
+
                 function _delete(id, channel, cb2) {
                     e.deleteMessage(id, channel, function(err2, data) {
-                        if(err2 && err2.statusCode == 429) {
+                        if (err2 && err2.statusCode == 429) {
                             logger.warn("Rate limit", err2)
                             setTimeout(function() {
                                 _delete(id, channel, cb2);
                             }, err2.retry_after + 1000);
                             return;
                         }
-                        if(!err) {
+                        if (!err) {
                             last = id;
                         }
                         cb2(err2);
@@ -154,11 +163,11 @@ function purge(e, args) {
     function removeMore(before, count, callback) {
         var limit = count > 100 ? 100 : count;
         remove(before, limit, function(err, data, last) {
-            if(err || !data) {
+            if (err || !data) {
                 callback(err);
             }
 
-            if(count - limit <= 0) {
+            if (count - limit <= 0) {
                 callback(err, data, last);
             } else {
                 removeMore(err, count - limit, callback);
@@ -166,18 +175,19 @@ function purge(e, args) {
         })
     }
 
-    if(args.flags.all) {
-        if(!e.canUser("purge.all")) {
+    if (args.flags.all) {
+        if (!e.canUser("purge.all")) {
             e.mention().respond("You can't use the --all flag!");
             return;
         }
+
         function iterate(err, data, last) {
-            if(err) {
+            if (err) {
                 logger.error(err);
                 e.code(err.message).respond();
                 return;
             }
-            if(last) {
+            if (last) {
                 removeMore(last, 100, iterate);
             } else {
                 e.code("Done").respond();
@@ -188,14 +198,14 @@ function purge(e, args) {
         return;
     }
 
-    if(args.user) {
+    if (args.user) {
         e.respond("**Purging messages from __" + e.getName(args.user) + "__**");
     } else {
         e.respond("**Purging message**");
     }
 
     removeMore(e.rawEvent.d.id, args.count, function(err) {
-        if(err) {
+        if (err) {
             logger.error(err);
             e.code(err.message).respond();
             return;
@@ -203,7 +213,9 @@ function purge(e, args) {
         logger.debug("Done!");
         e.code("Done!").respond();
     });
+}
 
+function generateInvite(e, args) {
 
 
 }
