@@ -66,11 +66,15 @@ function doRemind(e, args) {
     }
     try {
         var parsedTimeTemp = parser.parseDuration(split[0]);
-        e.mention().code(JSON.stringify(parsedTimeTemp), 'javascript').respond();
+        //e.mention().code(JSON.stringify(parsedTimeTemp), 'javascript').respond();
+        if(parsedTimeTemp._milliseconds == Infinity) e.mention().respond("Value too big, fuck off");
+        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp._milliseconds)  + "**");
         storeReminder(e, { private: pm }, new Date(Date.now() + parsedTimeTemp._milliseconds).getTime(), parsedTimeTemp._milliseconds, split[1]);
     } catch (error) {
         var parseUglyValue = parseUgly(split[0]);
-        e.mention().code(JSON.stringify(parseUglyValue, null, '\t'), 'javascript').respond();
+        //e.mention().code(JSON.stringify(parseUglyValue, null, '\t'), 'javascript').respond();
+        if(!parseUglyValue) return;
+        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parseUglyValue.relative) + "**");
         storeReminder(e, { private: pm }, parseUglyValue.absolute, parseUglyValue.relative, split[1]);
     }
 }
@@ -126,6 +130,17 @@ function prepareReminder(reminderObject) { //check if it should set up a cache f
     if (!reminderObject) return;
     var timems = Math.round(reminderObject.time - Date.now());
 
+    if (reminderObject.time === null || reminderObject.relative === null || reminderObject.relative == Infinity) {
+      database.update({ "id": reminderObject.id }, { "reminded": true }, function (err, res) {
+          if (err) return (logger.error("[REMINDER]: Can't delete reminder with id ", reminderObject.id, " and message: ", reminderObject.message));
+          logger.debug("[REMINDER]: Deleted invalid reminder ", reminderObject.id);
+          getReminder(function (err, res) {
+              prepareReminder(res);
+          });
+      });
+      return;
+    }
+
     if (reminderObject.time < new Date()) { // u wut m8, this is an old reminder what we forgot to remind  ???????
         if (!_disco) return;
 
@@ -138,13 +153,14 @@ function prepareReminder(reminderObject) { //check if it should set up a cache f
 
     //if(oldCache.id == reminderObject.id) return;
 
-    logger.debug("Cached new reminder with id:", reminderObject.id, "and expiration in ms:", timems, "with message", reminderObject.message);
+    logger.debug("[REMINDER]: Cached new reminder with id:", reminderObject.id, "and expiration in ms:", timems, "with message `", reminderObject.message, "`");
     cachedReminder = setTimeout(finishRemind, timems, reminderObject);
 
 }
 
 function storeReminder(e, args, time, relative, message) { // this is when new reminders ar added
     //insert into database, delete old reminder and do a getReminder & prepareReminder again
+    if(isNaN(time) || relative == Infinity) return;
     database.insert({
         "addedOn": Math.round(new Date(e.rawEvent.d.timestamp).getTime()),
         "userID": e.userID,
@@ -202,15 +218,18 @@ function finishRemind(reminderObject, expired) { // set expired to true to show 
 
 
 function checkReminders(e, args) {
+  //TODO: add args.mention which lets you check other users reminders. reminder.other is the permission
     var str = "Your reminders: \n";
-    database.find({ "userID": e.userID, "reminded": "0" }, function (err, res) {
+    database.find({ "userID": e.userID, "reminded": "0" }, {"_order": { "columnName": "time", "sortOrder": "ASC" }}, function (err, res) {
         if (err) {
             console.log(err);
             return (e.mention().respond("Failed database querry."));
         }
         if (res.count === 0) return (e.mention().respond("You don't have any upcoming reminders."));
         for (var i = 0; i < res.count; i++) {
-            str += "**" + res.result[i].message + "**" + (res.result[i].private === 1 ? " *[PM]*" : "") + "\n\t" + new Date(parseInt(res.result[i].time)) + "\n";
+            str += "**" + res.result[i].message + "**" + (res.result[i].private === 1 ? " *[PM]*" : "");
+            str += "\n\t" + new Date(parseInt(res.result[i].time));
+            str += "\n\t\tIn **" + convertMS(res.result[i].time - Date.now()) + "**\n";
         }
         e.mention().respond(str);
     });
@@ -230,7 +249,7 @@ function convertMS(ms) {
     h !== 0 ? timeString += h + " hour" + (h > 1 ? "s" : "") + " " : null;
     m !== 0 ? timeString += m + " minute" + (m > 1 ? "s" : "") + " " : null;
     s !== 0 ? timeString += s + " second" + (s > 1 ? "s" : "") + " " : null;
-    _ms !== 0 ? timeString += _ms + " milisecond" + (_ms > 1 ? "s" : null) + " " : null;
+    _ms !== 0 ? timeString += _ms + " milisecond" + (_ms > 1 ? "s" : null): null;
     return timeString;
 };
 
