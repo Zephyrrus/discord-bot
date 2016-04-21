@@ -4,11 +4,12 @@
  */
 var PermissionManager = require("./PermissionManager.js");
 var CommandManager = require("./CommandManager.js");
+//var DatabaseManager = require("./DatabaseManager.js");
 var logger = require("winston");
 var fs = require("fs");
 var async = require("async");
 
-function DiscordBot(bot) {
+function DiscordBot(bot, config, database) {
     this.bot = bot;
 
     logger.info("Starting");
@@ -17,6 +18,8 @@ function DiscordBot(bot) {
     this.pm = new PermissionManager.PermissionManager(this, function() {});
     this.cm = new CommandManager(this);
     this.databaseHandler = require("./Database/databaseHandler.js");
+    this.config = config;
+    this.database = database;
     this.outbound = {};
 }
 
@@ -290,5 +293,7 @@ DiscordBot.prototype.splitMessage = function(message, chunkSize) {
 
     return chunks;
 }
+
+DiscordBot.prototype.logError = function(error) {}; // not implemented yet
 
 module.exports = DiscordBot;

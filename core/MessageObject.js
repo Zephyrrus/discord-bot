@@ -15,12 +15,12 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
 
   this.database = configs.database; // will be deprecated soon-ish
   this.language = configs.language;
-  this.config = configs.config; // will be deprecated soon-ish
+  this.config = disco.config; // will be deprecated soon-ish
 
   this.logger = functions.logger; // will be deprecated soon-ish
 
   this.flags = {};
-  this.flags.nsfwEnabled = flags.nsfwEnabled;
+  this.flags.nsfwEnabled = flags.nsfwEnabled; // dafuq I am doing here o.O
   this.allowNSFW = flags.nsfwEnabled; // will be deprecated soon-ish
   this.flags.isPM = flags.isPM;
 
@@ -218,24 +218,6 @@ MessageObject.prototype.pmRespondLong = function(message, uid, callback){
   return this;
 };
 
-MessageObject.prototype._messageSplitter = function (_disco, channelID, message, counter, lastLength) {
-    var self = this;
-    counter = counter || 1;
-    var maxUncalculatedLength = 1900;
-    var total = Math.ceil(message.length / maxUncalculatedLength);
-    var aditionalLenght = 0;
-    while (message[((lastLength || 0) + maxUncalculatedLength) + aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990) {
-      aditionalLenght++;
-    }
-    var currentSplice = message.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
-    _disco.queueMessage(channelID, currentSplice, function () {
-      if (counter < total) {
-        self._messageSplitter(_disco, channelID, message, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
-      }/*else{
-        callback && callback();
-      }*/
-    });
-};
 
 /**
 * Escapes @, *, _, ~, # and `

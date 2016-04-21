@@ -158,10 +158,9 @@ CommandRegister.prototype.addModule = function(moduleObject, filename) {
     }
 };
 
-CommandRegister.prototype.tryExec = function(e, cmd, args, callback) {
-    //try {
+CommandRegister.prototype.tryExec = function(e, callback) {
+    try {
         var self = this;
-        if (args[0]) args[0].toLowerCase();
         async.applyEach(self.commandHandlers["start"], e, function(err) {
             if (err) {
                 logger.info("Execution blocked");
@@ -169,7 +168,6 @@ CommandRegister.prototype.tryExec = function(e, cmd, args, callback) {
                 if (err.message && !err.silent) {
                     e.text("Something went terribly wrong:").code(err.message).respond();
                 }
-
                 // stop processing
             } else {
                 doNext1();
@@ -177,21 +175,33 @@ CommandRegister.prototype.tryExec = function(e, cmd, args, callback) {
         });
 
         function doNext1() {
-            if (!self.commands[cmd]) {
-                async.applyEach(self.commandHandlers["end"], e, function(err) {
-                    if (err) {
-                        logger.info("Execution blocked");
-                        if (err.message) {
-                        //e.mention().respond(err.message);
-                        }
-                        return;
-                    }
-                });
+            var parsed = self.tryParse(e);
+            if (!parsed) return; // lets not do post-processing on no mention yet, we don't need it.
+
+            // prepare the command variables
+            e.command = parsed.command;
+            e.isPM = parsed.isPM;
+            if (parsed.args[0]) parsed.args[0].toLowerCase();
+
+            // prepare the nsfw flags
+            var nsfwEnabled = false;
+            if ((parsed.isPM || e._disco.database.nsfwChannels.indexOf(e.channelID) > -1) && self.disco.config.content.allowNSFW) {
+                nsfwEnabled = true;
+            }
+            e.nsfwEnabled = nsfwEnabled;
+
+            if (!self.commands[parsed.command] /*|| !parsed*/ ) {
+                doFinal();
                 return (callback && callback({
                     errorcode: 404,
-                    error: "Command does not exist"
+                    error: "Not a command or command does not exist."
                 }));
-            }
+            } // lets do the final here and break without continuing with any parsing.
+
+            doNext2(parsed.command, parsed.args);
+        }
+
+        function doNext2(cmd, args) {
             var parameters;
             if (self.commands[cmd].child && args[0]) {
                 var lowerSubcmd = args[0] ? args[0].toLowerCase() : args[0];
@@ -244,7 +254,7 @@ CommandRegister.prototype.tryExec = function(e, cmd, args, callback) {
                     }
                 }
             } else {
-                logger.debug("[CMD]_No child commands for " + cmd + ", executing parent command or no subcmd received.");
+                logger.debug("[CMD]_No child commands for " + cmd + ", executing parent command");
                 if (self.checkCooldown(cmd, self.commands[cmd].cooldown, e.userID, e.serverID, e.flags.isPM)) {
                     parameters = self.commands[cmd].paramParser.get(args.join(" "));
                     if (parameters && !parameters.error) {
@@ -267,31 +277,56 @@ CommandRegister.prototype.tryExec = function(e, cmd, args, callback) {
                     }));
                 }
             }
+            doFinal(); // this is here so it only runs if no command was executed before.
+
+        }
+
+
+        function doFinal() {
             async.applyEach(self.commandHandlers["end"], e, function(err) {
                 if (err) {
                     logger.info("Execution blocked");
                     if (err.message) {
-                        e.mention().respond(err.message);
+                        //e.mention().respond(err.message);
                     }
                     return;
                 }
             });
         }
-    /*} catch (err) {
+    } catch (err) {
+        logger.error("Failed executing command/Parsing chain failed.", e.stack);
         return (callback && callback({
             errorcode: -1,
-            error: "Failed executing command",
+            error: "Failed executing command/Parsing chain failed.",
             stack: err.stack
         }));
-    }*/
+    }
 
 };
 
-CommandRegister.prototype.doExec = function(e, cmd, args, callback) {
+CommandRegister.prototype.tryParse = function(e) {
+    var uidFromMention = /<@([0-9]+)>/;
+    var string = e.message;
+    var channelID = e.channelID;
+    var pieces = string.split(" ");
+    pieces = pieces.filter(Boolean); // removes ""
+    if (pieces[0] === undefined) return null;
+    var isPM = this.disco.bot.serverFromChannel(channelID) === undefined ? true : false;
+    if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === this.disco.bot.id) && this.disco.config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1 && !isPM) {
+        return false;
+    }
+    if (isPM === true && this.disco.config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1) {
+        pieces.unshift(" ");
+    }
+    if (pieces[1] === undefined) return null;
+    if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
 
-
-};
-
+    return {
+        command: pieces[1].toLowerCase(),
+        args: pieces.slice(2, pieces.length),
+        isPM: isPM
+    };
+}
 
 CommandRegister.prototype.getHelpCommand = function(cmd) {
     var help = {};
@@ -361,8 +396,8 @@ CommandRegister.prototype.setCooldown = function(cmd, uid) {
 CommandRegister.prototype.checkCooldown = function(cmd, cooldown, uid, sid, isPM) {
     var requestTime = new Date().getTime();
     cooldown = isPM ? config.general.privatecooldown : cooldown;
-    if(this.disco.pm.canUser(uid, "root.nocooldown", sid)){
-      return true;
+    if (this.disco.pm.canUser(uid, "root.nocooldown", sid)) {
+        return true;
     }
     if (this.cooldowns[uid] && this.cooldowns[uid][cmd]) {
         if (this.cooldowns[uid][cmd].executed + cooldown < requestTime) {
