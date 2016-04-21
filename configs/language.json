@@ -1,0 +1,9 @@
+{
+	"ping":{
+		"main": "**EXPLOSION**",
+		"delay": "Spell delay:"
+	},
+	"crash":{
+		"message": "**WHY DID I CRASH**\n"
+	}
+}
