@@ -11,6 +11,8 @@ var MessageObject = require("./core/MessageObject.js");
 var LiteBotWrapper = require("./core/DiscordBotLite.js");
 var _bot;
 var loaded = false;
+var language = require('./configs/language.json');
+var lock = true;
 
 process.argv.forEach(function (val, index, array) {
     if (val === "development") MODE = "development";
@@ -26,8 +28,7 @@ if (MODE === "production") {
 
 GLOBAL.MODE = MODE;
 var bot = new Discordbot({
-    email: auth.discord.email,
-    password: auth.discord.password,
+    token: auth.discord.token,
     autorun: true
 });
 var startTime = Math.round(new Date() / 1000);
@@ -70,7 +71,7 @@ bot.on("ready", function (rawEvent) {
     if (MODE == "development") {
         logger.info("Sending log in information to discord.");
         bot.editUserInfo({
-            password: auth.discord.password, //Required
+            //token: auth.discord.token,
             username: config.general.username //Optional
         });
         //commands['waifu'] = require("./modules/waifu/module_waifu.js");
@@ -96,11 +97,12 @@ bot.on("ready", function (rawEvent) {
             "nsfwFilter": config.content.allowNSFW
         }
     }, bot);
-    _bot = new LiteBotWrapper(bot);
+    _bot = new LiteBotWrapper(bot, config, database);
     //load(_bot);
     _bot.cm.load();
     var startupTime = Math.round((new Date()).getTime() - startTimeMs);
-    logger.info(`It took ${startupTime} ms to initialize the bot.`)
+    logger.info(`It took ${startupTime} ms to initialize the bot.`);
+    lock = false;
 });
 
 
@@ -164,46 +166,19 @@ function download(url, dest, cb) {
 var banChecker = require("./modules/module_banning.js").isBanned;
 
 function processMessage(user, userID, channelID, message, rawEvent) {
+    if(lock) return;
     var serverID = bot.serverFromChannel(channelID);
     if (userID == bot.id) {
         return;
     }
     if (serverID == undefined) {
         logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
-        if (message.indexOf("discordapp.com") > -1 || message.indexOf("discord.gg") > -1) {
-            var invite = message.split("/").pop();
-            if (invite.length > 5)
-                bot.acceptInvite(invite, function (err, res) {
-                    if (err) {
-                        bot.sendMessage({
-                            to: channelID,
-                            message: "Can't join that server. \n```javascript\n" + JSON.stringify(err, null, "\t") + "```"
-                        })
-                        return;
-                    }
-                    bot.sendMessage({
-                        to: channelID,
-                        message: "Joined server **" + res.guild.name + "**"
-                    });
-                    return;
-                });
-        }
+        
     } else {
         logger.verbose("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, '') + (rawEvent.d.attachments[0] !== undefined ? "[attachments: " + rawEvent.d.attachments[0].url + " ]" : ""));
     }
 
-    // new shit is here
-
-    var parsed = parse(message, channelID);
-    if (!parsed) {
-        //console.log("Not a command");
-        return;
-    }
-    var nsfwEnabled = false;
-    if ((parsed.isPM || database.nsfwChannels.indexOf(channelID) > -1) && config.content.allowNSFW) {
-        nsfwEnabled = true;
-    }
-    if (parsed.command == "eval") {
+    /*if (parsed.command == "eval") {
         if (userID != config.general.masterID) {
             bot.sendMessage({
                 to: channelID,
@@ -223,55 +198,38 @@ function processMessage(user, userID, channelID, message, rawEvent) {
             });
         }
         return;
-    }
-    banChecker(userID, function (result) {
-        if (result) {
+    }*/
+
+    //banChecker(userID, function (result) {
+        /*if (result) {
             bot.sendMessage({
                 to: uid,
                 message: "<@" + uid + "> You are banned from using this bot. STOP TOUCHING ME.\nIf you want to know the ban reason or get unbanned, please message <@" + config.general.masterID + ">"
             });
             return;
-        }
+        }*/ // we cant send a message every time cause this will lead to a lot of spam cuase of the new parsers.
         // new module loader/executer
-        var e = new MessageObject(_bot, {}, serverID, user, userID, channelID, message, rawEvent, { database: database, nsfwEnabled: nsfwEnabled, logger: logger, config: config, isPM: parsed.isPM });
-        _bot.cm.tryExec(e, parsed.command, parsed.args, function (err) {
+
+        var e = new MessageObject(
+            _bot, {}, serverID, user, userID, channelID, message, rawEvent,
+                { database: database, config: config,language: language }, // configs
+                { logger: logger }, // functions
+                { nsfwEnabled: null, isPM: null } // flags
+            );
+        _bot.cm.tryExec(e, function (err) {
             if (err && err.errorcode == 1) bot.sendMessage({
                 to: channelID,
                 message: "<@" + userID + "> you are doing that too fast!"
             });
+            else if (err && err.errorcode == 2)
+              e.mention().respond("Sorry, I can't run the command with the provided arguments.\n**" + err.error.usage + "**\nError: **" + err.error.message + "**");
             else if (err && err.errorcode != 404)
                 e.respond("```javascript\n" + JSON.stringify(err, null, '\t') + "```");
-            else if (err && err.errorcode == 404) {
-                if (database.messages[parsed.command]) {
-                    e.respond(database.messages[parsed.command]);
-                    return;
-                }
-            }
+
+
             if (!err) return;
         });
-    });
-}
-
-function parse(string, channelID) {
-    var pieces = string.split(" ");
-    pieces = pieces.filter(Boolean); // removes ""
-
-    if (pieces[0] === undefined) return null;
-    var isPM = bot.serverFromChannel(channelID) === undefined ? true : false;
-    if (!(uidFromMention.test(pieces[0]) && uidFromMention.exec(pieces[0])[1] === bot.id) && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1 && !isPM) {
-        return false;
-    }
-    if (isPM === true && config.general.listenTo.indexOf(pieces[0].toLowerCase()) == -1) {
-        pieces.unshift(" ");
-    }
-    if (pieces[1] === undefined) return null;
-    if (pieces[1] === "\u2764") pieces[1] = "love"; //ech, used for love command because the receives a heart shaped character
-
-    return {
-        command: pieces[1].toLowerCase(),
-        args: pieces.slice(2, pieces.length),
-        isPM: isPM
-    };
+    //});
 }
 
 function tm(unix_tm) {
@@ -294,13 +252,13 @@ function getUptimeString(startTime) {
     h !== 0 ? uptime += h + " hours " : null;
     m !== 0 ? uptime += m + " minutes " : null;
     s !== 0 ? uptime += s + " seconds " : null;
-    logger.debug({
+    /*logger.debug({
         t: t,
         d: d,
         h: h,
         m: m,
         s: s
-    });
+    });*/
     return uptime;
 }
 
@@ -319,61 +277,6 @@ function convertMS(ms) {
         m: m,
         s: s
     };
-}
-
-
-//THIS FUNCTION WORKS SOMEHOW AS IS, NEVER TOUCH IT AGAIN OR IT MAY BREAK AND THE EVIL MAY BE SUMMONED
-/*
- * Recursively goes over a long message and split's in in several messages with len < 2000
- *
- * @input e - the e OBJECT
- * @input msg - the message to be split up and sent
- * @input channelID - the channel where the message has to be sent
- * @input counter - splice counter, don't set this manually except if you know what you're doing
- * @lastLength - the lastLength of the message sent previously
- */
-
-function recursiveSplitMessages(e, channelID, msg, counter, lastLength) {
-    counter = counter || 1;
-    var maxUncalculatedLength = 1900;
-    var total = Math.ceil(msg.length / maxUncalculatedLength);
-    var aditionalLenght = 0;
-    while (msg[((lastLength || 0) + maxUncalculatedLength) + aditionalLenght] != "\n" && (maxUncalculatedLength + aditionalLenght) < 1990) {
-        aditionalLenght++;
-    }
-    var currentSplice = msg.substring((lastLength || 0), parseInt((lastLength || 0) + (maxUncalculatedLength + aditionalLenght)));
-    e.bot.sendMessage({
-        to: channelID,
-        message: currentSplice
-    }, function (err, resp) {
-        if (err) logger.error("[RECURSIVE_SPLIT]_ERROR: " + err);
-        if (counter < total) {
-            recursiveSplitMessages(e, channelID, msg, counter + 1, parseInt((maxUncalculatedLength + aditionalLenght)) + parseInt((lastLength || 0)));
-        }
-    });
-}
-
-function logCommand(channelID, user, cmd, arguments, error) {
-    if (error == "User can't run the previous command because he is banned.") {
-        bot.sendMessage({
-            to: config.general.logChannel,
-            message: "*" + Date() + "*\n**" + user + "** is a banned user and it's trying to touch me.\n\n"
-        });
-        return;
-    }
-    if (config.general.logging) {
-        if (error) {
-            bot.sendMessage({
-                to: config.general.logChannel,
-                message: "*" + Date() + "*\n**" + user + "\'s** access to the command `" + cmd + "` with the arguments `" + JSON.stringify(arguments) + "` in channel <#" + channelID + "> **has been denied**\n**Reason**: `" + error + "`\n\n"
-            });
-        } else {
-            bot.sendMessage({
-                to: config.general.logChannel,
-                message: "*" + Date() + "*\n**" + user + "** used command `" + cmd + "` with the arguments `" + JSON.stringify(arguments) + "` in channel <#" + channelID + ">\n\n"
-            });
-        }
-    }
 }
 
 function printError(channelID, err) {
@@ -400,7 +303,8 @@ function _getFilesRecursive(dir, files_) {
     return files_;
 }
 
-function doWelcome(rawEvent) {
+function doWelcome(userID, rawEvent) {
+    logger.error(JSON.stringify(rawEvent));
     if (rawEvent.d.guild_id == '161871321670746112') {
         bot.addToRole({
             server: rawEvent.d.guild_id,
