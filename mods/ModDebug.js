@@ -54,14 +54,15 @@ module.exports = {
         helpMessage: "gets information about a specific user.",
         category: "Info",
         handler: doWhois,
-        params: [{ id: "userID", type: "mention", required: false }]
+        params: [{ id: "userID", type: "mention", required: false, canError: true }]
     },
     "log": {
         helpMessage: "log",
         category: "Info",
+        params: [{ id: "channelID", type: "string", required: false }],
         handler: getMessages,
     }
-}
+};
 
 function status(e, args) {
     var t = Math.floor((((new Date()).getTime()) - (e._disco._startTime)));
@@ -76,7 +77,7 @@ function status(e, args) {
         if (e._disco.cm.commands[cmd].child) commandCount += Object.keys(e._disco.cm.commands[cmd].child).length;
     }
     var now = new Date();
-    e.respond("- Author: <@" + e.config.general.masterID + "> [Zephy]\n\
+    e.respond("- Author: <@" + e._disco.config.general.masterID + "> [Zephy]\n\
 - Version: " + e._disco._version + "\n\
 - Library: Discord.io \n\
 - Source code: https://github.com/Zephyrrus/discord-bot/ \n\
@@ -94,7 +95,7 @@ function getRoles(e, args) {
     for (var role in e._disco.bot.servers[e.serverID].roles) {
         res += role + ":" + e.clean(e._disco.bot.servers[e.serverID].roles[role].name) + " [position: " + e._disco.bot.servers[e.serverID].roles[role].position + "]\n";
     }
-    e.mention().respondLong("Roles on this server: \n```css\n" + res + "```");
+    e.mention().respond("Roles on this server: \n```css\n" + res + "```");
 
 }
 
@@ -131,7 +132,7 @@ function getModules(e, args) {
 
 
 function getPermissionHelp(e, args) {
-    var str = "All commands are prefixed with `" + e.config.general.listenTo + "` or mention of the bot.\n**Commands to which you have access:** \n";
+    var str = "All commands are prefixed with `" + e._disco.config.general.listenTo + "` or mention of the bot.\n**Commands to which you have access:** \n";
     for (var cmd in e._disco.cm.commands) {
         var help = e._disco.cm.getHelpPermission(cmd, e.userID, e.serverID);
         if (typeof help === "object") {
@@ -153,12 +154,13 @@ function dumpJson(e, args) {
 }
 
 function doWhois(e, args) {
-    args.userID = args.userID || e.userID;
+    args.userID = args.userID;
     var mentionedUser;
     str = "USER-INFO: \n";
     if(e._disco.bot.servers[e.serverID]) {
         mentionedUser = e._disco.bot.servers[e.serverID].members[args.userID];
     }
+
     if(mentionedUser === undefined) {
             var stradd = "\n\tTHIS USER IS NOT FROM THIS SERVER\n\n";
             for (var sid in e._disco.bot.servers) {
@@ -182,12 +184,13 @@ function doWhois(e, args) {
     str += "\nSERVER-INFO: \n";
     str += `\tJoined at: ${new Date(Date.parse(mentionedUser.joined_at))}\n`;
     str += `\tCurrent status: ${mentionedUser.status ? mentionedUser.status: "Offline"}\n`;
-    if (mentionedUser.game !== null) str += `\tPlaying: ${e.clean(mentionedUser.game.name)}\n`;
-    str += `\tRoles: `;
+    if (mentionedUser.game) str += `\tPlaying: ${e.clean(mentionedUser.game.name)}`;
+    /*str += `\tRoles: `;
     for (var i = 0; i < mentionedUser.roles.length; i++) {
+      console.log(e._disco.bot.servers[e.serverID].roles);
         str += e.clean(e._disco.bot.servers[e.serverID].roles[mentionedUser.roles[i]].name);
         if (i + 1 != mentionedUser.roles.length) str += ", ";
-    }
+    }*/
     str += "\n\n";
     str += `VOICE-INFO:\n\tMuted:${mentionedUser.mute}\n\tDeafen:${mentionedUser.deaf}`;
     e.code(str, "css").respond();
@@ -205,6 +208,7 @@ var databaseStructure = [
 var database = new(require("../core/Database/databaseHandler.js"))('logs', databaseStructure);
 
 function getMessages(e, args) {
+    args.channelID = args.channelID || e.channelID;
 
     function _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries) {
         currentSlice = currentSlice || 0;
@@ -234,6 +238,6 @@ function getMessages(e, args) {
         });
     }
 
-    e.respond(`Dumping \`${e.channelID}\``);
-    _getMessage(e.channelID, 100);
+    e.respond(`Dumping \`${args.channelID}\``);
+    _getMessage(args.channelID, 100);
 }
