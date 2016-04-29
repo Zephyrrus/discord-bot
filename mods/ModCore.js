@@ -60,7 +60,7 @@ module.exports = {
             required: false
         }]
     },
-    "come": {
+    "invite": {
         helpMessage: "Generates an invite link for the bot.",
         category: "admin",
         handler: generateInvite
@@ -216,6 +216,9 @@ function purge(e, args) {
 }
 
 function generateInvite(e, args) {
-
+    if(e._disco.bot.getOauthInfo){
+        //e.code(e._disco.bot.inviteLink, "javascript").respond();
+        e.mention().respond("My OAuth invite link is:\n" + e._disco.bot.inviteLink);
+    }
 
 }
