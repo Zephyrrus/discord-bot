@@ -1,7 +1,10 @@
 var request = require("request");
 var cheerio = require("cheerio");
+var cleverBot = require("./clever/_cleverApi.js");
+var cleverInstance;
+
 var uidFromMention = /<@([0-9]+)>/;
-var slaps = ["a large trout", "a large pig", "a large horse", "a large cat", "a Big Mac", "a large dog", "a computer", "a stolen car"]
+var slaps = ["a large trout", "a large pig", "a large horse", "a large cat", "a Big Mac", "a large dog", "a computer", "a stolen car"];
 var answersArr = [
     [
         'Maybe.', 'Certainly not.', 'I hope so.', 'Not in your wildest dreams.',
@@ -59,6 +62,7 @@ module.exports = {
         version: "1.2.0",
         author: "Zephy",
         description: "random commands.",
+        setup: doSetup
     },
     "dance": {
         helpMessage: "dance :D",
@@ -128,22 +132,37 @@ module.exports = {
             type: "string",
             required: true
         }]
+    },
+    "clever": {
+        helpMessage: "bull",
+        category: "bull",
+        handler: beClever
     }
+};
+
+function doSetup() {
+    cleverBot.prepare();
+    cleverInstance = new cleverBot();
+}
+
+function beClever(e, args) {
+    try {
+        cleverInstance.ask(args._str, function (res) {
+            if (res.message)
+                e.mention().respond(res.message);
+        });
+    } catch (exp) {}
 }
 
 
-
-
-
-
 function doDance(e, args) {
-    e.respond("(/'-')/", function(err, response) {
+    e.respond("(/'-')/", function (err, response) {
         if (err) return;
-        e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function(err, response) {
+        e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function (err, response) {
             if (err) return;
-            e.editMessage(response.id, e.channelID, "(/'-')/", function(err, response) {
+            e.editMessage(response.id, e.channelID, "(/'-')/", function (err, response) {
                 if (err) return;
-                e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function(err, response) {
+                e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function (err, response) {
                     if (err) return;
                 });
             });
@@ -171,7 +190,7 @@ function doSlap(e, args) {
 }
 
 function doBall(e, args) {
-    var rand = (new seededRandom(sumASCII(args._str + " "))).random();
+    var rand = (new seededRandom(sumASCII(args._str + " " + e.userID))).random();
     e.mention().respond(":crystal_ball: *" + answersArr[0][randomScaler(rand, 0, answersArr[0].length)] + "* :crystal_ball:")
 }
 
@@ -186,7 +205,7 @@ function doGangsta(e, args) {
         form: {
             translatetext: args.text + args._str
         }
-    }, function(err, response, body) {
+    }, function (err, response, body) {
         if (err) {
             console.log(err);
             return;
@@ -205,13 +224,14 @@ function babyDontHurtMe(e, args) {
 }
 
 function fancy(e, args) {
-    str = "";
+    
     args.text += args._str;
     if (args.text.length > 20) {
         e.mention().respond("I don't fancy that.");
         return;
     }
     var split = args.text.split("");
+    var str = args.text + "\n";
     for (var i = 0; i < args.text.length; i++) {
         split.push(split.shift());
         str += split.join("") + "\n";
@@ -220,8 +240,8 @@ function fancy(e, args) {
 }
 
 function shuu(e, args) {
-    e.mention().respond("Grabbing a random image from e-shuushuu.net", function(err, res) {
-        request("http://e-shuushuu.net/random.php", function(err, response, body) {
+    e.mention().respond("Grabbing a random image from e-shuushuu.net", function (err, res) {
+        request("http://e-shuushuu.net/random.php", function (err, response, body) {
             if (err) {
                 console.log(err);
                 return;
@@ -248,9 +268,9 @@ function shuu(e, args) {
 function emote(e, args) {
     if (e.database.images[args.emote.toLowerCase()]) {
         e.deleteMessage();
-        e.respondFile(e.database.images[args.emote.toLowerCase()])
+        e.respondFile(e.database.images[args.emote.toLowerCase()]);
     } else {
-        e.mention().respond(": **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added.")
+        e.mention().respond(": **Sorry I don't know that twitch emote right now ;_;**\nMessage Zephy and let him know that you want it added.");
     }
 }
 
@@ -270,16 +290,16 @@ function randomScaler(number, low, high) {
 }
 
 function sumASCII(string) {
-    return string.toLowerCase().split('').map(function(char) {
+    return string.toLowerCase().split('').map(function (char) {
         return char.charCodeAt(0);
-    }).reduce(function(current, previous) {
+    }).reduce(function (current, previous) {
         return previous + current;
     });
 }
 
 function seededRandom(seed) {
     var r = seed;
-    this.random = function() {
+    this.random = function () {
         var x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
     }
