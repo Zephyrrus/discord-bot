@@ -16,7 +16,7 @@ var reminderFromString = /[^;%$\|]*/;
 var uidFromMention = /<@([0-9]+)>/;
 
 var cachedReminder;
-
+var autoCacher;
 var _disco;
 
 module.exports = {
@@ -59,6 +59,7 @@ function doRemind(e, args) {
     var reminder = reminderFromString.exec(joinedArguments)[0];
     var split = [reminder, joinedArguments.substring(reminder.length + 1)];
     split[0] = split[0].trim();
+    split[0] = split[0].replace("me ", ""); // support reddit like >remind me thing
     if (split[1]) split[1] = split[1].trim();
     if (split[0] === "" || split[1] === "") {
         e.mention().respond("Missing time variable or message to remind you about\n**Usage**: \nremind <time> [separator] <message> - Will remind you in x about <message>\nAny of the following characters can be used as a separator: **;%$|**");
@@ -67,13 +68,16 @@ function doRemind(e, args) {
     try {
         var parsedTimeTemp = parser.parseDuration(split[0]);
         //e.mention().code(JSON.stringify(parsedTimeTemp), 'javascript').respond();
-        if(parsedTimeTemp._milliseconds == Infinity) e.mention().respond("Value too big, fuck off");
-        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp._milliseconds)  + "**");
-        storeReminder(e, { private: pm }, new Date(Date.now() + parsedTimeTemp._milliseconds).getTime(), parsedTimeTemp._milliseconds, split[1]);
+        console.log(parsedTimeTemp);
+        if(parsedTimeTemp._milliseconds == Infinity || parsedTimeTemp > 1009152000000) e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy.");
+        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp)  + "**" + (args.flags.pm ? " in private.":""));
+        storeReminder(e, { private: pm }, new Date(Date.now() + parsedTimeTemp).getTime(), parsedTimeTemp, split[1]);
     } catch (error) {
         var parseUglyValue = parseUgly(split[0]);
-        //e.mention().code(JSON.stringify(parseUglyValue, null, '\t'), 'javascript').respond();
-        if(!parseUglyValue) return;
+        if(!parseUglyValue) {
+          e.mention().respond("Sorry, I can't understand that time.");
+          return;
+        }
         e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parseUglyValue.relative) + "**");
         storeReminder(e, { private: pm }, parseUglyValue.absolute, parseUglyValue.relative, split[1]);
     }
@@ -120,6 +124,16 @@ var parseUgly = function (timeout) {
 
 function cacheRemind(disco) { // setup
     _disco = disco;
+
+    if(!autoCacher) // dont set another autocacher if there is one working already
+    autoCacher = setInterval(function(){
+        if(!cachedReminder){
+            getReminder(function (err, res) {
+                prepareReminder(res);
+            });
+        }
+    }, 86400000); // 24 hours
+
     getReminder(function (err, res) {
         prepareReminder(res);
     });
@@ -147,7 +161,7 @@ function prepareReminder(reminderObject) { //check if it should set up a cache f
         finishRemind(reminderObject, true);
         return;
     }
-    if (cachedReminder) clearTimeout(cachedReminder); // murder old reminder, fuck it tbh
+    if (cachedReminder) {clearTimeout(cachedReminder); cachedReminder == null;} // murder old reminder, fuck it tbh
 
     if (timems > 2147483647) return;
 
@@ -193,8 +207,7 @@ function getReminder(callback) { // gets the top reminder and returns a reminder
 function finishRemind(reminderObject, expired) { // set expired to true to show a message along the lines "I am sorry for being late, you told me to remind you on DATE about MESSAGE"
     //set id as reminded
     //get top reminder, when other reminder ends (but calling prepareReminder)
-    //deliverReminder(reminderObject, function(err, res){
-    var message = `<@${reminderObject.userID}> **REMINDER**\n\n`; //MENTION **REMINDER**\n\n [Sorry, I forgot to remind you of] You told me to remind you of ```MESSAGE`` [**time** ago]. \n\n I was late [**lateTime**];
+    var message = `<@${reminderObject.userID}> **EXPLOSION**\n\n`; //MENTION **REMINDER**\n\n [Sorry, I forgot to remind you of] You told me to remind you of ```MESSAGE`` [**time** ago]. \n\n I was late [**lateTime**];
     message += (expired ? "Sorry, I forgot to remind you of " : "You told me to remind you of ") + "```\n" + (reminderObject.message || "No message") + "```";
     //message += `**${convertMS(reminderObject.time - reminderObject.addedOn)}** ago\n`; // too exact on small values, users shouldn't know about the delays.
     message += `**${expired ? convertMS(Math.round(Date.now() - reminderObject.time)) : convertMS(reminderObject.relative)}** ago\n\n`;
@@ -205,6 +218,7 @@ function finishRemind(reminderObject, expired) { // set expired to true to show 
 
     _disco.queueMessage((reminderObject.private == '1' ? reminderObject.userID : reminderObject.channelID), message, function (err, res) {
         if (err) return (logger.error("[REMINDER]: Can't remind reminder with id ", reminderObject.id, " and message: ", reminderObject.message));
+        //TODO: retry in 2 minutes or delete;
         database.update({ "id": reminderObject.id }, { "reminded": true }, function (err, res) {
             if (err) return (logger.error("[REMINDER]: Can't delete reminder with id ", reminderObject.id, " and message: ", reminderObject.message));
             logger.debug("[REMINDER]: Finished reminding reminder with id ", reminderObject.id);
@@ -213,12 +227,11 @@ function finishRemind(reminderObject, expired) { // set expired to true to show 
             });
         });
     });
-    //}); //deliver the reminder here
 }
 
 
 function checkReminders(e, args) {
-  //TODO: add args.mention which lets you check other users reminders. reminder.other is the permission
+  //TODO: add args.mention which lets you check other users reminders. reminder.other is the permission. [You do not have permission to query the reminders of other users. Returning your own reminders]
     var str = "Your reminders: \n";
     database.find({ "userID": e.userID, "reminded": "0" }, {"_order": { "columnName": "time", "sortOrder": "ASC" }}, function (err, res) {
         if (err) {
@@ -228,7 +241,7 @@ function checkReminders(e, args) {
         if (res.count === 0) return (e.mention().respond("You don't have any upcoming reminders."));
         for (var i = 0; i < res.count; i++) {
             str += "**" + res.result[i].message + "**" + (res.result[i].private === 1 ? " *[PM]*" : "");
-            str += "\n\t" + new Date(parseInt(res.result[i].time));
+            str += "\n\t" + new Date(parseInt(res.result[i].time)).toUTCString();
             str += "\n\t\tIn **" + convertMS(res.result[i].time - Date.now()) + "**\n";
         }
         e.mention().respond(str);
