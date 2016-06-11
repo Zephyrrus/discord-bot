@@ -184,48 +184,13 @@ MessageObject.prototype.pm = function (message, uid, callback) {
   return this;
 };
 
-MessageObject.prototype.respondLong = function(message, channelID, callback){
-  if (typeof (message) == "undefined") {
-    message = "";
-  }
-  if (typeof (message) == "string") {
-    message = this._prepend + message;
-  }
-  if (typeof (channelID) == "function"){
-    callback = channelID;
-    channelID = this.channelID;
-  } else if (!channelID){
-    channelID = this.channelID;
-  }
-  this._messageSplitter(this._disco, channelID, message);
-  return this;
-};
-
-MessageObject.prototype.pmRespondLong = function(message, uid, callback){
-  if (typeof (message) == "undefined") {
-    message = "";
-  }
-  if (typeof (message) == "string") {
-    message = this._prepend + message;
-  }
-  if (typeof (uid) == "function"){
-    callback = uid;
-    uid = this.userID;
-  } else if (!uid){
-    uid = this.userID;
-  }
-  this._messageSplitter(this._disco, uid, message);
-  return this;
-};
-
-
 /**
 * Escapes @, *, _, ~, # and `
 */
 MessageObject.prototype.clean = function (text) {
     text = text || "";
     try {
-        return text.replace(/[#@`*_~]/g, "\\$&");
+        return text.replace(/[#@`*_~]/g, "\u200B$&");
     } catch(err) {
         return "";
     }

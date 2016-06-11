@@ -32,7 +32,7 @@ module.exports = {
         helpMessage: "set a reminder. Time format can be natural language (10 minutes and 5 seconds) or xHxMxS format.",
         category: "Misc",
         handler: doRemind,
-        params: [{
+        /*params: [{
             id: "flags",
             type: "flags",
             options: {
@@ -43,7 +43,7 @@ module.exports = {
                     boolean: true
                 }
             }
-        }],
+        }],*/
         child: [{
             name: "list",
             handler: checkReminders,
@@ -53,14 +53,17 @@ module.exports = {
 };
 
 function doRemind(e, args) {
-    var pm = args.flags.pm || false;
+    //var pm = args.flags.pm || false;
+    var pm = false;
     //e.respond("State of PM flag: " + pm);
+    console.log(args);
     var joinedArguments = args._str;
     var reminder = reminderFromString.exec(joinedArguments)[0];
     var split = [reminder, joinedArguments.substring(reminder.length + 1)];
     split[0] = split[0].trim();
     split[0] = split[0].replace("me ", ""); // support reddit like >remind me thing
     if (split[1]) split[1] = split[1].trim();
+    console.log("'" + split[0] + "'");
     if (split[0] === "" || split[1] === "") {
         e.mention().respond("Missing time variable or message to remind you about\n**Usage**: \nremind <time> [separator] <message> - Will remind you in x about <message>\nAny of the following characters can be used as a separator: **;%$|**");
         return;
@@ -68,8 +71,9 @@ function doRemind(e, args) {
     try {
         var parsedTimeTemp = parser.parseDuration(split[0]);
         //e.mention().code(JSON.stringify(parsedTimeTemp), 'javascript').respond();
-        console.log(parsedTimeTemp);
-        if(parsedTimeTemp._milliseconds == Infinity || parsedTimeTemp > 1009152000000) e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy.");
+        //console.log(parsedTimeTemp);
+
+        if(parsedTimeTemp._milliseconds == Infinity || parsedTimeTemp > 1009152000000) return (e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy."));
         e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp)  + "**" + (args.flags.pm ? " in private.":""));
         storeReminder(e, { private: pm }, new Date(Date.now() + parsedTimeTemp).getTime(), parsedTimeTemp, split[1]);
     } catch (error) {
@@ -78,6 +82,7 @@ function doRemind(e, args) {
           e.mention().respond("Sorry, I can't understand that time.");
           return;
         }
+        if(parseUglyValue.relative == Infinity || parseUglyValue.relative > 1009152000000) return (e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy."));
         e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parseUglyValue.relative) + "**");
         storeReminder(e, { private: pm }, parseUglyValue.absolute, parseUglyValue.relative, split[1]);
     }
@@ -89,10 +94,15 @@ var parseUgly = function (timeout) {
     var seconds = 0;
     var days = 0;
     var years = 0;
+    var weeks = 0;
     timeout = timeout.replace(/\s+/g, '');
     if (timeout.toLowerCase().split("y").length >= 2) {
         years = parseInt(timeout.toLowerCase().split("y")[0]);
         timeout = timeout.toLowerCase().split("y")[1];
+    }
+    if (timeout.toLowerCase().split("w").length >= 2) {
+        weeks = parseInt(timeout.toLowerCase().split("w")[0]);
+        timeout = timeout.toLowerCase().split("w")[1];
     }
     if (timeout.toLowerCase().split("d").length >= 2) {
         days = parseInt(timeout.toLowerCase().split("d")[0]);
@@ -112,8 +122,8 @@ var parseUgly = function (timeout) {
     var absolute = (((hours * 60 * 60) + (minutes * 60) + seconds) * 1000);
     if (isNaN((hours + minutes + seconds)) || absolute < 1) return false;
     return {
-        absolute: new Date().getTime() + (((hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
-        relative: (((hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
+        absolute: new Date().getTime() + (((days * 24 * 60 * 60) + (hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
+        relative: (((days * 24 * 60 * 60) + (hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
         seconds: seconds,
         minutes: minutes,
         hours: hours,
@@ -240,15 +250,16 @@ function checkReminders(e, args) {
         }
         if (res.count === 0) return (e.mention().respond("You don't have any upcoming reminders."));
         for (var i = 0; i < res.count; i++) {
-            str += "**" + res.result[i].message + "**" + (res.result[i].private === 1 ? " *[PM]*" : "");
+            str += "**" + e.clean(res.result[i].message) + "**" + (res.result[i].private === 1 ? " *[PM]*" : "");
             str += "\n\t" + new Date(parseInt(res.result[i].time)).toUTCString();
-            str += "\n\t\tIn **" + convertMS(res.result[i].time - Date.now()) + "**\n";
+            str += "\n\t\tIn **" + convertMS(res.result[i].time - Date.now()) + "**\n\n";
         }
         e.mention().respond(str);
     });
 }
 
 function convertMS(ms) {
+    return forHumans(Math.floor(ms/1000)); // use new time conversion
     var d, h, m, s, _ms, timeString = "";
     _ms = ms % 1000;
     s = Math.floor(ms / 1000);
@@ -266,14 +277,27 @@ function convertMS(ms) {
     return timeString;
 };
 
-/*
- * Time to throw my plan here if I still remember it.
- * First we cache the reminders for the next 24h, then every hour we do a caching again to check if there is anything new
- * If a reminder is already in cache, don't add it agian.
- * Every reminder has a varaible timeout which has a setTimeout tied to it.
- * Every new reminder is added to the cache (if it's not more than 24h), and also to the database.
- * When a reminder is finished, mark it like that in the databse then throw it away from the cache
- * The reminder also stores the channelID, if the PM flag was set to true, it will remind you in pm instead
- *
- * TODO: Expose the reminders to the web module.
+/**
+ * Translates seconds into human readable format of seconds, minutes, hours, days, and years
+ * 
+ * @param  {number} seconds The number of seconds to be processed
+ * @return {string}         The phrase describing the the amount of time
  */
+function forHumans ( seconds ) {
+    var levels = [
+        [Math.floor(seconds / 31536000), 'years'],
+        [Math.floor((seconds % 31536000) / 604800), 'weeks'],
+        [Math.floor(((seconds % 31536000) % 604800) / 86400), 'days'],
+        [Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
+        [Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
+        [((((seconds % 31536000) % 86400) % 3600) % 60), 'seconds'],
+    ];
+    var returntext = '';
+
+    for (var i = 0, max = levels.length; i < max; i++) {
+        if ( levels[i][0] === 0 ) continue;
+        if ( levels[i][0] === 0.00 ) continue;
+        returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length-1): levels[i][1]);
+    };
+    return returntext.trim();
+}

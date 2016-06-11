@@ -1,4 +1,5 @@
 var startTimeMs = new Date();
+var internalStartTime = new Date();
 /*Variable area*/
 const VERSION = require("./package.json").version;
 const BRANCH = "Refactoring branch";
@@ -7,6 +8,7 @@ var Discordbot = require('discord.io');
 var fs = require('fs');
 var http = require('http');
 var logger = require("winston");
+var os = require("os");
 var MessageObject = require("./core/MessageObject.js");
 var LiteBotWrapper = require("./core/DiscordBotLite.js");
 var _bot;
@@ -39,7 +41,7 @@ var database = new(require("./database.js"))();
 var away = [];
 
 ////
-var webConnecter = require("./modules/web/webModule.js");
+//var webConnecter = require("./modules/web/webModule.js");
 ////
 
 var dt = new Date();
@@ -65,43 +67,38 @@ bot.on("err", function (error) {
 });
 
 bot.on("ready", function (rawEvent) {
-    if (!fs.existsSync("./modules/cache")) {
+	
+    /*if (!fs.existsSync("./modules/cache")) {
         fs.mkdirSync("./modules/cache");
-    }
+    }*/
+    ////
     if (MODE == "development") {
         logger.info("Sending log in information to discord.");
         bot.editUserInfo({
-            //token: auth.discord.token,
             username: config.general.username //Optional
-        });
-        //commands['waifu'] = require("./modules/waifu/module_waifu.js");
+        }); 
     }
     logger.info("Connected!");
     logger.info("Logged in as: ");
     logger.info(bot.username + " - (" + bot.id + ")");
     logger.info("Listento: " + config.general.listenTo);
+    logger.info("Version: " + VERSION + " ~ " + BRANCH);
+
+    ////
     bot.setPresence({
         idle_since: null,
+		type: 1,
+		url: config.general.url,
         game: config.general.defaultStatus
     });
-    logger.info("Version: " + VERSION + " ~ " + BRANCH);
     logger.info("Set status!");
-    var web = webConnecter({
-        "bot": bot,
-        "database": database,
-        "config": config,
-        "logger": logger,
-        "botStatus": {
-            "startTime": startTime,
-            "cooldown": config.general.globalcooldown,
-            "nsfwFilter": config.content.allowNSFW
-        }
-    }, bot);
-    _bot = new LiteBotWrapper(bot, config, database);
-    //load(_bot);
+
+    ////
+    _bot = new LiteBotWrapper(bot, config, database, startTimeMs);
     _bot.cm.load();
-    var startupTime = Math.round((new Date()).getTime() - startTimeMs);
-    logger.info(`It took ${startupTime} ms to initialize the bot.`);
+    var startupTime = Math.round((new Date()).getTime() - internalStartTime);
+    logger.info(`It took ${internalStartTime} ms to initialize the bot.`);
+    _bot.logJournal(`At {time} on {date}, I sucessfully ${lock ? "started up.":"restarted after disconnect from discord API."}\nCalculated start up time is **${startupTime}** ms.\nHostname **${os.hostname()}**\nVersion: **${VERSION}**`);
     lock = false;
 });
 
@@ -121,33 +118,9 @@ bot.on("debug", function (rawEvent) {
 
 bot.on("disconnected", function () {
     logger.error("Bot disconnected");
+    internalStartTime = new Date();
     bot.connect(); //Auto reconnect
 });
-
-/*Function declaration area*/
-function sendMessages(e, messageArr, interval) {
-    var callback, resArr = [],
-        len = messageArr.length;
-    typeof (arguments[2]) === 'function' ? callback = arguments[2]: callback = arguments[3];
-    if (typeof (interval) !== 'number') interval = 1000;
-
-    function _sendMessages() {
-        setTimeout(function () {
-            if (messageArr[0]) {
-                e.bot.sendMessage({
-                    to: e.channelID,
-                    message: messageArr.shift()
-                }, function (err, res) {
-                    resArr.push(res);
-                    if (resArr.length === len)
-                        if (typeof (callback) === 'function') callback(resArr);
-                });
-                _sendMessages();
-            }
-        }, interval);
-    }
-    _sendMessages();
-}
 
 function download(url, dest, cb) {
     var file = fs.createWriteStream(dest);
@@ -161,7 +134,6 @@ function download(url, dest, cb) {
         if (cb) cb(err.message);
     });
 };
-
 
 var banChecker = require("./modules/module_banning.js").isBanned;
 
@@ -221,11 +193,11 @@ function processMessage(user, userID, channelID, message, rawEvent) {
                 to: channelID,
                 message: "<@" + userID + "> you are doing that too fast!"
             });
+
             else if (err && err.errorcode == 2)
               e.mention().respond("Sorry, I can't run the command with the provided arguments.\n**" + err.error.usage + "**\nError: **" + err.error.message + "**");
             else if (err && err.errorcode != 404)
-                e.respond("```javascript\n" + JSON.stringify(err, null, '\t') + "```");
-
+            	e._disco.logJournal(`<@132166948359241728>\nAt {time} on {date}, user **${e.user}** with id \`${e.userID}\` in channel **${e.channelID}** sent me **${e.message}**\nSomething went wrong \`\`\`javascript\n${JSON.stringify(err, null, '\t').replace(/([^\\])\\n/g, '$1\n\t')}\`\`\`\n`, "error", "180820908187844608");
 
             if (!err) return;
         });
@@ -306,16 +278,29 @@ function _getFilesRecursive(dir, files_) {
 function doWelcome(userID, rawEvent) {
     logger.error(JSON.stringify(rawEvent));
     if (rawEvent.d.guild_id == '161871321670746112') {
-        bot.addToRole({
-            server: rawEvent.d.guild_id,
-            user: rawEvent.d.user.id,
-            role: '161897607650607104'
-        }, function(err,res){
-          bot.sendMessage({
-              to: '161871321670746112',
-              message: `**EXPLOSION!~**\n\nWelcome <@${rawEvent.d.user.id}> to the server. You have been assigned *member* rank by me.\nHave fun and please enjoy your stay.`
-          });
-        });
+        if(!rawEvent.d.user.bot){
+            bot.addToRole({
+                server: rawEvent.d.guild_id,
+                user: rawEvent.d.user.id,
+                role: '161897607650607104'
+            }, function(err,res){
+                bot.sendMessage({
+                    to: '161871321670746112',
+                    message: `**EXPLOSION!~**\n\nWelcome <@${rawEvent.d.user.id}> to the server. You have been assigned *member* rank by me.\nHave fun and please enjoy your stay.`
+                });
+            });
+        }else{
+            bot.addToRole({
+                server: rawEvent.d.guild_id,
+                user: rawEvent.d.user.id,
+                role: '161874966470590466'
+            }, function(err,res){
+                bot.sendMessage({
+                    to: '161871321670746112',
+                    message: `**EXPLOSION!~**\n\nWelcome <@${rawEvent.d.user.id}> to the server. You have been assigned *bot* rank by me.\nHave fun and please enjoy your stay.`
+                });
+            });
 
+        }
     }
 }

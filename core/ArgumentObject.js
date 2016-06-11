@@ -58,7 +58,7 @@ Params.prototype.get = function(string) {
             o[this.options[i].id] = r.val;
             string = r.string;
         } catch(e) {
-            if(option.required) {
+            if(option.required || option.canError) {
                 e.silent = false;
                 e.displayHelp = true;
                 return {
@@ -74,7 +74,7 @@ Params.prototype.get = function(string) {
         error: null,
         results: o
     };
-}
+};
 
 Params.prototype.getHelp = function () {
     var str = "";
@@ -85,7 +85,7 @@ Params.prototype.getHelp = function () {
             str += option.type + ":";
             if(!paramTypes[option.type]) {
                 logger.debug("Invalid param type: " + option.type);
-                str += "*invalid type*"
+                str += "*invalid type*";
             } else {
                 if(typeof(paramTypes[option.type]) == "object" && typeof(paramTypes[option.type].help) == "function") {
                     str += paramTypes[option.type].help(option);
@@ -122,11 +122,11 @@ var paramTypes = {
         return {
             val: num,
             string: rest
-        }
+        };
     },
     boolean: function(string, options){
       var quotedString = /^ *("(\\"|[^"])*"|[^ ]+)/;
-      var bools = {true: ["+", "true", "enable"], false: ["-", "false", "disable"]}
+      var bools = {true: ["+", "true", "enable"], false: ["-", "false", "disable"]};
       var str = string.match(quotedString);
       if(!str) {
           throw new Error("Invalid string");
@@ -188,10 +188,8 @@ var paramTypes = {
 
     },
     mention: function(string, options, disco) {
-        //var mentionExtractor = /^( *(\\?<@([0-9]+)>|uid:([0-9]+)))( |$)/;
-        var mentionExtractor = /^( *(?:\\?<@([0-9]+)>|uid:([0-9]+)))(?: |$)/;
+        var mentionExtractor = /^( *(?:\\?<@!?([0-9]+)>|uid:([0-9]+)))(?: |$)/;
         var idstr = string.match(mentionExtractor);
-
         if(!idstr) {
             if(disco) {
                 try {
@@ -205,6 +203,7 @@ var paramTypes = {
                     if (disco.bot.servers.hasOwnProperty(sid)) {
                         for (var uid in disco.bot.servers[sid].members) {
                             if (disco.bot.servers[sid].members.hasOwnProperty(uid)) {
+
                                 var name = disco.bot.servers[sid].members[uid].user.username;
                                 if(uids.indexOf(uid) == -1 && rx.test(name)) {
                                     uids.push(uid);

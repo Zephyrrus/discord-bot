@@ -6,13 +6,23 @@ module.exports = {
         moduleName: "Reddit graber",
         version: "1.1.2",
         author: "Zephy & Windsdon",
-        description: "random reddit graber",
+        description: "random reddit graber"
       },
       "reddit": {
         permission: "reddit",
         helpMessage: "Grab a random image from the frontpage of this subreddit",
         category: "Entertainment",
         params: [
+                {
+                    id: "flags",
+                    type: "flags",
+                    options: {
+                        opts: {
+                            boolean: true
+                        },
+                        list: ["nsfw"]
+                    }
+                },
                 {
                     id: "sub",
                     type: "string",
@@ -33,6 +43,7 @@ module.exports = {
 }
 
 function doReddit(e, args) {
+    if(args.flags.nsfw) args.nsfw = true;
     if(!args.sub.match(/^[a-zA-Z0-9_\-]+$/)) {
         e.mention().respond(`**${args.sub} is not a valid subreddit**`);
         return;
@@ -74,6 +85,7 @@ function doReddit(e, args) {
                 if(v.data.over_18 && !args.nsfw) {
                     return;
                 }
+                if(!v.data.over_18 && args.nsfw) return; // return on non-nsfw post when nsfw only is active
                 if(/(\.png|\.jpg)$/.test(v.data.url)) {
                     posts.push({
                         url: v.data.url,

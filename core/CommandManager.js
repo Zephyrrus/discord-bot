@@ -188,7 +188,8 @@ CommandRegister.prototype.tryExec = function(e, callback) {
             if ((parsed.isPM || e._disco.database.nsfwChannels.indexOf(e.channelID) > -1) && self.disco.config.content.allowNSFW) {
                 nsfwEnabled = true;
             }
-            e.nsfwEnabled = nsfwEnabled;
+            e.allowNSFW = nsfwEnabled;
+            e.flags.nsfwEnabled = nsfwEnabled; // deprecate this
 
             if (!self.commands[parsed.command] /*|| !parsed*/ ) {
                 doFinal();
@@ -213,6 +214,7 @@ CommandRegister.prototype.tryExec = function(e, callback) {
                         parameters = self.commands[cmd].child[subcmd].paramParser.get(args.join(" "));
                         if (parameters && !parameters.error) {
                             if (self.canRun(e, self.commands[cmd].child[subcmd].permission) && self.commands[cmd].child[subcmd].handler) self.commands[cmd].child[subcmd].handler(e, parameters.results);
+                            e._disco.logJournal(`At {time} on {date}, user **${e.user}** with id \`${e.userID}\` executed **${cmd} ${subcmd}**\nRaw argument list was: \`\`\`javascript\n${JSON.stringify(parameters.results)}\n\`\`\`\n`);
                             return (callback && callback(null));
                         } else {
                             return (callback && callback({
@@ -236,6 +238,7 @@ CommandRegister.prototype.tryExec = function(e, callback) {
 
                         if (parameters && !parameters.error) {
                             if (self.canRun(e, self.commands[cmd].permission) && self.commands[cmd].handler) self.commands[cmd].handler(e, parameters.results);
+                            e._disco.logJournal(`At {time} on {date}, user **${e.user}** with id \`${e.userID}\` executed **${cmd}**\nRaw argument list was: \`\`\`javascript\n${JSON.stringify(parameters.results)}\n\`\`\`\n`);
                             return (callback && callback(null));
                         } else {
                             return (callback && callback({
@@ -260,6 +263,7 @@ CommandRegister.prototype.tryExec = function(e, callback) {
                     if (parameters && !parameters.error) {
                         e.args = parameters;
                         if (self.canRun(e, self.commands[cmd].permission) && self.commands[cmd].handler) self.commands[cmd].handler(e, parameters.results);
+                        e._disco.logJournal(`At {time} on {date}, user **${e.user}** with id \`${e.userID}\` executed **${cmd}**\nRaw argument list was: \`\`\`javascript\n${JSON.stringify(parameters.results)}\n\`\`\`\n`);
                         return (callback && callback(null));
                     } else {
                         return (callback && callback({
