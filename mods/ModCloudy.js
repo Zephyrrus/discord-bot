@@ -1,5 +1,5 @@
 var request = require('request');
-
+var generated = [];
 module.exports = {
     "MODULE_HEADER": {
         moduleName: "Word cloud commands",
@@ -27,7 +27,18 @@ module.exports = {
             type: "string",
             required: false
         }],
+    },
+    "thunder": {
+      permission: "thunder",
+      helpMessage: "cloudy!",
+      category: "Admin",
+      handler: thunder,
     }
+};
+
+function thunder(e, args){
+  generated = [];
+  e.mention().respond("Reseted global limits");
 }
 
 function doCanvas(sortedList, limit, callback) {
@@ -191,7 +202,7 @@ function sortIt(unsortable, trash) {
     var stopWords = /^(i|me|my|myself|we|us|our|ours|ourselves|you|your|yours|yourself|yourselves|he|him|his|himself|she|her|hers|herself|it|its|itself|they|them|their|theirs|themselves|what|which|who|whom|whose|this|that|these|those|am|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|will|would|should|can|could|ought|i'm|you're|he's|she's|it's|we're|they're|i've|you've|we've|they've|i'd|you'd|he'd|she'd|we'd|they'd|i'll|you'll|he'll|she'll|we'll|they'll|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't|doesn't|don't|didn't|won't|wouldn't|shan't|shouldn't|can't|cannot|couldn't|mustn't|let's|that's|who's|what's|here's|there's|when's|where's|why's|how's|a|an|the|and|but|if|or|because|as|until|while|of|at|by|for|with|about|against|between|into|through|during|before|after|above|below|to|from|up|upon|down|in|out|on|off|over|under|again|further|then|once|here|there|when|where|why|how|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|so|than|too|very|say|says|said|shall)$/;
 
     for (var element in unsortable) {
-        if (!(element.length < trash) && !stopWords.test(element.toLowerCase()) && (element.indexOf("<") == -1 && element.indexOf(">")))
+        if (!(element.length < trash) && !stopWords.test(element.toLowerCase()) && (element.indexOf("<") == -1 && element.indexOf(">") == -1) && element.indexOf("http") == -1)
             sortable.push([element, unsortable[element]]);
     }
 
@@ -243,6 +254,7 @@ function Clamper(min, max) {
     //return this;
 }
 
+//TODO: limit cloudy 12h/channel
 function getMessages(e, channelID, callback) {
 
     var maxTime = Date.now() - 86400000;
@@ -297,8 +309,15 @@ function getMessages(e, channelID, callback) {
 function tryCloud(e, args) {
     var start = process.hrtime();
     var minLen = 4; // filters out with len 0-3
-
     args.channelID = args.channelID || e.channelID;
+
+    if (generated[args.channelID] && (Date.now() - generated[args.channelID].timestamp) < 21600000){
+      e.mention().respond("Can't generate cloud for this channel because there was one already generated in the last 6h");
+      return;
+    }
+    generated[args.channelID] = {};
+    generated[args.channelID].timestamp = Date.now();
+
     if (args.flags.filter && !isNaN(args.flags.filter)) {
         minLen = args.flags.filter || 4;
     }
@@ -311,7 +330,7 @@ function tryCloud(e, args) {
                 raindrop: e._disco.config.cloud.rain,
                 //upfile:
                 upfile: {
-                    value: res,
+                    value: res + `<!-- {channelID:'${e.channelID}', serverID:'${e.serverID}', timestamp:'${Date.now()}', userID:'${e.userID}' } -->`,
                     options: {
                         filename: 'thing.svg',
                         contentType: 'image/svg+xml'
@@ -320,6 +339,8 @@ function tryCloud(e, args) {
             };
             request.post({ url: e._disco.config.cloud.backend, formData: formData }, function optionalCallback(err, httpResponse, body) {
                 if (err) {
+                    generated[args.channelID].timestamp = 0;
+                    e.logger.error(err);
                     return e.mention().respond("Failed generating word cloud, can't connect to backend!");
                 }
                 try{
@@ -328,6 +349,8 @@ function tryCloud(e, args) {
                     e.mention().respond("Finished generating word cloud.\nYou can find it at http://zephy.xyz/cloud/" + response.fileName + "." +response.ext + ".\nIt took me **" + elapsed_time(start) + "** to generate it for you\nFiltered out every word with len < **" + minLen + "**");
                   else {
                     e.mention().respond("Failed uploading cloud to back-end!");
+                    e.logger.error(response);
+                    generated[args.channelID].timestamp = 0;
                   }
                 }catch(e){
                   e.mention().respond("Failed generating word cloud, back-end returned invalid data!");
