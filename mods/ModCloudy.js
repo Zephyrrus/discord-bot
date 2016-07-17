@@ -14,17 +14,13 @@ module.exports = {
         handler: tryCloud,
         cooldown: 3600000,
         params: [{
-            id: "flags",
-            type: "flags",
-            options: {
-                opts: {
-                    "string": true
-                },
-                list: ["number"]
-            }
-        }, {
             id: "channelID",
             type: "string",
+            required: false
+        },
+        {
+            id: "filter",
+            type: "number",
             required: false
         }],
     },
@@ -264,7 +260,7 @@ function getMessages(e, channelID, callback) {
         currentSlice = currentSlice || 0;
         retries = retries || 0;
         var o = {
-            channel: e.channelID,
+            channel: channelID,
             before: before,
             limit: 100
         };
@@ -318,7 +314,7 @@ function tryCloud(e, args) {
     generated[args.channelID] = {};
     generated[args.channelID].timestamp = Date.now();
 
-    if (args.flags.filter && !isNaN(args.flags.filter)) {
+    if (args.filter && !isNaN(args.filter)) {
         minLen = args.flags.filter || 4;
     }
 

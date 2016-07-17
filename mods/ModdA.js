@@ -22,7 +22,7 @@ module.exports = {
         handler: deviantGrab,
         cooldown: 5000
     }
-}
+};
 
 
 
@@ -141,6 +141,7 @@ function deviantGrab(e, args) {
     e.mention().respond(`I am searching on deviantArt for **${args.name}**`, function (err, res) {
         getList(name, offset, function (err, o) {
             if (err) {
+                console.log(err);
                 e.editMessage(res.id, e.channelID, "Failed to do that:\n```\n" + err.message + "\n```");
                 return;
             }
