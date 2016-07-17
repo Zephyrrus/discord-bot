@@ -137,21 +137,34 @@ module.exports = {
         helpMessage: "bull",
         category: "bull",
         handler: beClever
+    },
+    "chuck": {
+        helpMessage: "LATER",
+        category: "Random",
+        handler: noris,
+        params: [{
+            id: "name",
+            type: "string",
+            required: false
+        }]
     }
 };
 
 function doSetup() {
-    cleverBot.prepare();
-    cleverInstance = new cleverBot();
+    /*cleverBot.prepare(()=>{});
+    cleverInstance = new cleverBot();*/
 }
 
 function beClever(e, args) {
     try {
-        cleverInstance.ask(args._str, function (res) {
+        cleverInstance.write(args._str, function (res) {
+            //console.log(res);
             if (res.message)
                 e.mention().respond(res.message);
         });
-    } catch (exp) {}
+    } catch (exp) {
+        console.error(exp);
+    }
 }
 
 
@@ -274,12 +287,32 @@ function emote(e, args) {
     }
 }
 
+function noris(e, args){
+    var append = args.name ? "?firstName=" + encodeURIComponent(args.name.trim()) : "";
+    require("./common/utils.js").getJson("http://api.icndb.com/jokes/random" + append, function(err, res){
+        if(err) e.mention().respond("Chuck Norris stole all the jokes, sorry :(");
+        if(args.name) res.value.joke = res.value.joke.trim().replace("Norris", "")
+        e.respond("*" + decodeHTMLEntities(res.value.joke) + "*");
+    });
+}
 
 
 
 
+function decodeHTMLEntities(text) {
+    var entities = [
+        ['apos', '\''],
+        ['amp', '&'],
+        ['lt', '<'],
+        ['gt', '>'],
+        ['quot', '"']
+    ];
 
+    for (var i = 0, max = entities.length; i < max; ++i) 
+        text = text.replace(new RegExp('&'+entities[i][0]+';', 'g'), entities[i][1]);
 
+    return text;
+}
 
 function randomInt(low, high) {
     return Math.floor(Math.random() * (high - low) + low);
