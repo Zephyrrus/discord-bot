@@ -154,11 +154,13 @@ module.exports = {
     cooldown: 5000
   }
 }
+
 function post9GAG(args, e, gagObject) {
   e.deleteMessage();
-  var link = gagObject.link.replace(/^https:\/\//i, 'http://');
-  var filename = link.split("/").pop();
-    request(link.toString(), {encoding: null}, function(err, res, body) {
+  /*var link = gagObject.link.replace(/^https:\/\//i, 'http://');
+  var filename = link.split("/").pop();*/
+  e.mention().respond("Title: **" + gagObject.title + "**\n" + gagObject.link);
+    /*request(link.toString(), {encoding: null}, function(err, res, body) {
       e.mention().respond("**I am grabbing a random image from 9gag for you** \u2764", function(err, res){
         e._disco.bot.uploadFile({
             to: e.channelID,
@@ -166,5 +168,5 @@ function post9GAG(args, e, gagObject) {
             filename: filename
         });
       }).sendMessage("Title: **" + gagObject.title + "**");
-    });
+    });*/
 }
