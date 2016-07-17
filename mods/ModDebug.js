@@ -1,19 +1,5 @@
-//var mcping = require("mc-ping-updated");
 var utils = require("./common/utils.js")
-
-/*function doPing(args, e) {
-    var serverToQuery = args.join("");
-    mcping('146.20.68.110', 25565, function (err, res) {
-        if (err) {
-            e.mention().respond("Something went wrong when checking for your minecraft server!\nThe error is below:\`\`\`\nServ: " + serverToQuery.split(":")[0] + "\nport: " + serverToQuery.split(":")[1] + "\n\n\n\n" + JSON.stringify(err, null, '\t').replace(/`/g, '\u200B`') + "\`\`\`");
-        } else {
-            e.mention().respond("**MOTD:** " + res.description.text.replace(/(§)([0-9]|[a-f])/g, "") + "\n" +
-                "**Version:** " + res.version.name + "\n" +
-                "**Players Online:** " + res.players.online + "/" + res.players.max + "\n")
-            return;
-        }
-    }, 3000);
-}*/
+var execSync = require('child_process').execSync;
 
 module.exports = {
     "MODULE_HEADER": {
@@ -61,8 +47,65 @@ module.exports = {
         category: "Info",
         params: [{ id: "channelID", type: "string", required: false }],
         handler: getMessages,
+    },
+    "crash": {
+        helpMessage: "simulates an error in parser chain",
+        category: "info",
+        handler: doCrash
+    },
+    "petition": {
+        helpMessage: "checks brexit petition result",
+        category: "info",
+        handler: getPetition
+    },
+    "eval": {
+        permission: "dangerous.eval",
+        helpMessage: "breaks the penis",
+        category: "info",
+        handler: cmdEval
+    },
+    "exec": {
+        permission: "dangerous.exec",
+        helpMessage: "breaks the head",
+        category: "info",
+        handler: cmdExec
     }
 };
+
+const util = require('util');
+const vm = require('vm');
+const sandbox = {};
+
+function cmdEval(e, args) {
+    var str = "```javascript\n";
+    str += eval(args._str);
+    str += "\n```";
+    e.respond(str);
+    /*try{
+        vm.createContext(sandbox);
+        var str = "```javascript\n";
+        str += vm.runInContext(args._str, sandbox);
+        str += "\n```";
+        e.respond(str);
+    }catch(exp){
+        var str = "```javascript\n";
+        str += exp;
+        str += "\n```";
+        e.respond(str);
+    }*/
+}
+
+function cmdExec(e, args) {
+    var str = "```javascript\n";
+    str += execSync(args._str);
+    str += "\n```";
+    e.respond(str);
+}
+
+function doCrash(e, args) {
+    e.mention().respond("Simulated fail in parser chain.");
+    throw new Error("Error in my ass.");
+}
 
 function status(e, args) {
     var t = Math.floor((((new Date()).getTime()) - (e._disco._startTime)));
@@ -154,36 +197,37 @@ function dumpJson(e, args) {
 }
 
 function doWhois(e, args) {
-    args.userID = args.userID;
+    args.userID = args.userID // || e.userID;
     var mentionedUser;
     str = "USER-INFO: \n";
-    if(e._disco.bot.servers[e.serverID]) {
+    if (e._disco.bot.servers[e.serverID]) {
         mentionedUser = e._disco.bot.servers[e.serverID].members[args.userID];
     }
-
-    if(mentionedUser === undefined) {
-            var stradd = "\n\tTHIS USER IS NOT FROM THIS SERVER\n\n";
-            for (var sid in e._disco.bot.servers) {
-                if (e._disco.bot.servers.hasOwnProperty(sid)) {
-                    if(e._disco.bot.servers[sid].members[args.userID]) {
-                        mentionedUser = e._disco.bot.servers[sid].members[args.userID];
-                    }
+    e.logger.error(mentionedUser);
+    if (mentionedUser === undefined) {
+        var stradd = "\n\tTHIS USER IS NOT FROM THIS SERVER\n\n";
+        for (var sid in e._disco.bot.servers) {
+            if (e._disco.bot.servers.hasOwnProperty(sid)) {
+                if (e._disco.bot.servers[sid].members[args.userID]) {
+                    mentionedUser = e._disco.bot.servers[sid].members[args.userID];
                 }
             }
+        }
     }
     if (!mentionedUser) {
         e.mention().respond("I have no information about that user.");
         return;
     }
-    str = "USER-INFO: \n";
+    str = "- USER-INFO: \n";
     str += stradd || "";
-    str += `\tName: ${e.clean(mentionedUser.user.username)}\n`;
-    str += `\tID: ${mentionedUser.user.id}\n`;
-    str += `\tDiscriminator: ${mentionedUser.user.discriminator}\n`;
-    str += `\tAvatar URL: https://cdn.discordapp.com/avatars/${mentionedUser.user.id}/${mentionedUser.user.avatar}.jpg\n`;
-    str += "\nSERVER-INFO: \n";
-    str += `\tJoined at: ${new Date(Date.parse(mentionedUser.joined_at))}\n`;
-    str += `\tCurrent status: ${mentionedUser.status ? mentionedUser.status: "Offline"}\n`;
+    str += `\tName: ${e.clean(mentionedUser.username)}\n`;
+    str += `\tID: ${mentionedUser.id}\n`;
+    str += `\tID generation date: ${new Date(parseInt(((+args.userID).toString(2)).slice(0, -22), 2) + 1420070400000).toUTCString()}\n`;
+    str += `\tDiscriminator: ${mentionedUser.discriminator}\n`;
+    str += `\tAvatar URL: https://cdn.discordapp.com/avatars/${mentionedUser.id}/${mentionedUser.avatar}.jpg\n`;
+    str += "\n- SERVER-INFO: \n";
+    str += `\tJoined at: ${new Date(Date.parse(mentionedUser.joined_at)).toUTCString()}\n`;
+    str += `\tCurrent status: ${mentionedUser.status ? mentionedUser.status : "Offline"}\n`;
     if (mentionedUser.game) str += `\tPlaying: ${e.clean(mentionedUser.game.name)}`;
     /*str += `\tRoles: `;
     for (var i = 0; i < mentionedUser.roles.length; i++) {
@@ -192,22 +236,25 @@ function doWhois(e, args) {
         if (i + 1 != mentionedUser.roles.length) str += ", ";
     }*/
     str += "\n\n";
-    str += `VOICE-INFO:\n\tMuted:${mentionedUser.mute}\n\tDeafen:${mentionedUser.deaf}`;
-    e.code(str, "css").respond();
+    str += `- VOICE-INFO:\n\tMuted:${mentionedUser.mute}\n\tDeafen:${mentionedUser.deaf}`;
+    e.code(str, "diff").respond(); // changed to diff from CSS
 }
 
 var databaseStructure = [
     { name: "id", type: "autonumber", primaryKey: true },
     { name: "channelID", type: "string", required: true },
     { name: "timestamp", type: "integer", required: true, unique: true },
-    { name: "name", type: "string", required: true},
-    { name: "userID", type: "string", required: true},
+    { name: "name", type: "string", required: true },
+    { name: "userID", type: "string", required: true },
     { name: "content", type: "string", required: true },
+    { name: "messageID", type: "string", required: true }
 ];
 
-var database = new(require("../core/Database/databaseHandler.js"))('logs', databaseStructure);
+var database = new (require("../core/Database/databaseHandler.js"))('logs', databaseStructure);
 
 function getMessages(e, args) {
+    //STORE MESSAGE ID
+    //ADD A SPECIAL MESSAGE CALLED SPLICE AND STORE THE CURRENT SLICE NUMBER
     args.channelID = args.channelID || e.channelID;
 
     function _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries) {
@@ -215,17 +262,16 @@ function getMessages(e, args) {
         retries = retries || 0;
         var o = { channel: e.channelID, before: before, limit: 100 };
         e._disco.bot.getMessages(o, function (error, messageArr) {
-          if(error){
-            if (error.statusCode) {return _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++);}
-            if (!error.statusCode) {return _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++);}
-            console.log(error);
-          }
+            if (error) {
+                return _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++);
+                console.log(error);
+            }
 
-            if(retries > 5) return;
+            if (retries > 5) return;
 
-            if (!messageArr){ _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++); }
+            if (!messageArr) { _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++); }
             for (var i = 0; i < messageArr.length; i++) {
-                database.insert({ channelID: messageArr[i].channel_id, name: messageArr[i].author.username, content: messageArr[i].content, userID: messageArr[i].author.id, timestamp: Math.floor(new Date(Date.parse(messageArr[i].timestamp))) }, function (err) {
+                database.insert({ messageID: messageArr[i].id, channelID: messageArr[i].channel_id, name: messageArr[i].author.username, content: messageArr[i].content, userID: messageArr[i].author.id, timestamp: Math.floor(new Date(Date.parse(messageArr[i].timestamp))) }, function (err) {
                     if (err) return;
                 });
             }
@@ -240,4 +286,14 @@ function getMessages(e, args) {
 
     e.respond(`Dumping \`${args.channelID}\``);
     _getMessage(args.channelID, 100);
+}
+
+var last;
+function getPetition(e, args) {
+    utils.getJson('https://petition.parliament.uk/petitions/131215.json', function (err, res) {
+        if (err) return e.mention().respond("Can't fetch results");
+        if (!last) last = { count: res.data.attributes.signature_count, time: Date.now() };
+        e.mention().respond(`Results for <https://petition.parliament.uk/petitions/131215>\nCurrent signature count **${res.data.attributes.signature_count}**. \nDifference since last check (*${utils.convertS((Date.now() - last.time) / 1000)}*): **${res.data.attributes.signature_count - last.count}**`);
+        last = { count: res.data.attributes.signature_count, time: Date.now() };
+    });
 }
