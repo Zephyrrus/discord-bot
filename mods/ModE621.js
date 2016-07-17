@@ -26,7 +26,7 @@ module.exports = {
 
 function getJson(url, callback) {
   var headers = {
-      'User-Agent':       'Raylen discord chat client.',
+      'User-Agent':       'Megu discord chat client.',
       'Content-Type':     'application/x-www-form-urlencoded'
   }
 
