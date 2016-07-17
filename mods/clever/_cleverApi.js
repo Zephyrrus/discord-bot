@@ -1,6 +1,6 @@
-var crypto = require('crypto');
-var http = require('http');
-var Cleverbot = function () {
+var crypto = require('crypto')
+    , http = require('http')
+    , Cleverbot = function () {
         this.params = Cleverbot.default_params;
     };
 
@@ -12,7 +12,7 @@ Cleverbot.default_params = {
     'fno': '0', 'prevref': '', 'emotionaloutput': '',
     'emotionalhistory': '', 'asbotname': '', 'ttsvoice': '',
     'typing': '', 'lineref': '', 'sub': 'Say',
-    'islearning': '1', 'cleanslate': 'false'
+    'islearning': '1', 'cleanslate': 'false',
 };
 Cleverbot.parserKeys = [
     'message', 'sessionid', 'logurl', 'vText8',
@@ -24,13 +24,13 @@ Cleverbot.parserKeys = [
 ];
 Cleverbot.digest = function (body) {
     var m = crypto.createHash('md5');
-    m.update(body);
+    m.update(body)
     return m.digest('hex');
 };
 
 Cleverbot.encodeParams = function (a1) {
     var u = [];
-    for (var x in a1) {
+    for (x in a1) {
         if (a1[x] instanceof Array)
             u.push(x + "=" + encodeURIComponent(a1[x].join(",")));
         else if (a1[x] instanceof Object)
@@ -59,7 +59,7 @@ Cleverbot.prepare =  function (callback) {
               var current_cookie = single_cookie[0].split("=");
               Cleverbot.cookies[current_cookie[0]] = current_cookie[1];
             }
-            return (callback && callback());
+            callback()
           }
     });
     req.end();
@@ -67,8 +67,7 @@ Cleverbot.prepare =  function (callback) {
 
 Cleverbot.prototype = {
 
-    ask: function (message, callback) {
-      console.log(message);
+    write: function (message, callback) {
         var clever = this;
         body = this.params;
         body.stimulus = message;
@@ -87,7 +86,7 @@ Cleverbot.prototype = {
         var options = {
             host: 'www.cleverbot.com',
             port: 80,
-            path: '/webservicemin',
+            path: '/webservicemin?uc=165&',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -100,12 +99,12 @@ Cleverbot.prototype = {
             var cb = callback || function () {
                 };
             res.on('data', function (chunk) {
-                var chunk_data = chunk.toString().split("\r");
-                var responseHash = {};
+                var chunk_data = chunk.toString().split("\r")
+                    , responseHash = {};
                 for (var i = 0, iLen = chunk_data.length; i < iLen; i++) {
                     clever.params[Cleverbot.parserKeys[i]] = responseHash[Cleverbot.parserKeys[i]] = chunk_data[i];
                 }
-                return (cb && cb(responseHash));
+                cb(responseHash);
             });
         });
         req.write(Cleverbot.encodeParams(body));
