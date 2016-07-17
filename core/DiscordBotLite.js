@@ -127,7 +127,7 @@ DiscordBot.prototype.getUserName = function(uid) {
             for (var member in this.bot.servers[sid].members) {
                 if (this.bot.servers[sid].members.hasOwnProperty(member)) {
                     if (member == uid) {
-                        return this.bot.servers[sid].members[member].user.username;
+                        return this.bot.servers[sid].members[member].username;
                     }
                 }
             }
@@ -301,7 +301,7 @@ DiscordBot.prototype.logError = function(error) {}; // not implemented yet
 DiscordBot.prototype.logJournal = function(message, level, channelID) {
     message = message.replace(/{date}/g, `**${new Date().toJSON().slice(0,10)}**`);
     message = message.replace(/{time}/g, `**${new Date().toJSON().slice(11, 19)}**`);
-    
+
     if((this.config.general.level == "debug" && level == "debug") || level != "debug")
         this.queueMessage(channelID || this.config.general.logChannel, message, function(err, res) {
             if (err) logger.error("Can't do journal for message: `" + message + "`");

@@ -82,8 +82,7 @@ CommandRegister.prototype.addModule = function(moduleObject, filename) {
             } else {
                 command.permission = currentKey.permission + ".main";
             }
-        }
-
+        };
 
         if (!currentKey.helpMessage || !currentKey.category) {
             logger.warn(`[CMD]: Command '${currentKey.name}' is missing important identifiers from its header. (` + ((currentKey.helpMessage ? "" : "helpMessage,") + (currentKey.category ? "" : "category")) + `)`);

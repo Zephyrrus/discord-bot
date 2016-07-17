@@ -346,7 +346,7 @@ PermissionManager.prototype.removeGroup = function (group, sid, callback) {
     }
 
     if(!this.groupExists(group, sid)) {
-        var msg = `This group doesn't exist: group = ${group}, sid = ${sid}`;
+        var msg = `This group doesnt exist: group = ${group}, sid = ${sid}`;
         logger.warn(msg);
         callback(new Error(msg))
         return false;
