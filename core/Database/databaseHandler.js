@@ -92,7 +92,7 @@ databaseHandler.prototype.insert = function (params, callback) {
         if (err != null) {
             logger.error("[SQLITE_ERROR]_INSERT_PARAMS: " + err);
             return (callback && callback({ type: "SQLITEERROR", error: err.stack }, null, params));
-        } 
+        }
         return (callback && callback(null, row, params)); // sent params are returned, optional
     });
 }
@@ -244,10 +244,10 @@ databaseHandler.prototype.update = function (querryParams, updateParams, callbac
  * Searches for something in the database and returns an object with the results from the db
  *
  * @input params: This is an array of object used for querring, it should look like this `{"columnNameToSearch": "whatRowShouldEqual"}`
- * @input specials: {"columnName":"comparation", "_order": {"columnName":"columnName", "sortOrder": "ASC|DESC"}}
+ * @input specials: {"columnName":"comparation (<, =, > or combined)", "_order": {"columnName":"columnName", "sortOrder": "ASC|DESC"}}
  * @input CB
  * @CB output: Return an object which looks like `{count: countOfObjects, result: [{}]}` or error if an error happened
- *  
+ *
  */
 databaseHandler.prototype.find = function (params, specials, callback) {
     if (typeof (specials) == "function")
@@ -273,7 +273,7 @@ databaseHandler.prototype.find = function (params, specials, callback) {
     }
     if (receivedParams.length === 0) return (callback && callback({ type: "HANDLER_ERROR_FIND", error: "Invalid or no parameters defined" }, null)); // this happens if no correct parametes were received
 
-    
+
 
     for (var i = 0; i < receivedParams.length; i++) {
         if (i + 1 == receivedParams.length) {
@@ -370,7 +370,7 @@ databaseHandler.prototype.top = function (topObject, columnName, querry, callbac
     var limit = 10;
     if (typeof topObject === "object") {
         if (topObject.sortBy && (topObject.sortBy.toUpperCase() === "ASC" || topObject.sortBy.toUpperCase() === "DESC")) {
-            sortBy = sortBy.topObject.toUpperCase();
+            sortBy = topObject.sortBy.toUpperCase();
         };
         if (topObject.limit && !isNaN(parseInt(topObject.limit))) {
             limit = parseInt(topObject.limit);
