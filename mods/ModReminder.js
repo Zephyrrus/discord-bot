@@ -55,6 +55,7 @@ module.exports = {
 function doRemind(e, args) {
     //var pm = args.flags.pm || false;
     var pm = false;
+
     //e.respond("State of PM flag: " + pm);
     console.log(args);
     var joinedArguments = args._str;
@@ -68,13 +69,13 @@ function doRemind(e, args) {
         e.mention().respond("Missing time variable or message to remind you about\n**Usage**: \nremind <time> [separator] <message> - Will remind you in x about <message>\nAny of the following characters can be used as a separator: **;%$|**");
         return;
     }
+
     try {
         var parsedTimeTemp = parser.parseDuration(split[0]);
-        //e.mention().code(JSON.stringify(parsedTimeTemp), 'javascript').respond();
-        //console.log(parsedTimeTemp);
-
         if(parsedTimeTemp._milliseconds == Infinity || parsedTimeTemp > 1009152000000) return (e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy."));
-        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp)  + "**" + (args.flags.pm ? " in private.":""));
+        if(parsedTimeTemp < 1000 ) return (e.mention().respond("Sorry, I was coded by Zephy, my time is not that exact."));
+        var str = "Sure, \nI will remind you about it in **" + convertMS(parsedTimeTemp)  + "**";
+        e.mention().respond(str);
         storeReminder(e, { private: pm }, new Date(Date.now() + parsedTimeTemp).getTime(), parsedTimeTemp, split[1]);
     } catch (error) {
         var parseUglyValue = parseUgly(split[0]);
@@ -83,52 +84,61 @@ function doRemind(e, args) {
           return;
         }
         if(parseUglyValue.relative == Infinity || parseUglyValue.relative > 1009152000000) return (e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy."));
-        e.mention().respond("Sure, \nI will remind you about it in **" + convertMS(parseUglyValue.relative) + "**");
+        var str = "Sure, \nI will remind you about it in **" + convertMS(parseUglyValue.relative)  + "**";
+        e.mention().respond(str);
         storeReminder(e, { private: pm }, parseUglyValue.absolute, parseUglyValue.relative, split[1]);
     }
 }
 
 var parseUgly = function (timeout) {
+    timeout = timeout.replace(/\s+/g, '');
+    var SECONDS = /(\d+) *(?:seconds|seconds|sec|s)/i;
+    var MINUTES = /(\d+) *(?:minutes|minute|min|m)/i;
+    var HOURS = /(\d+) *(?:hours|hour|h)/i;
+    var DAYS = /(\d+) *(?:days|days|d)/i;
+
+    var delta = 0;
+
     var hours = 0;
     var minutes = 0;
     var seconds = 0;
     var days = 0;
     var years = 0;
     var weeks = 0;
-    timeout = timeout.replace(/\s+/g, '');
-    if (timeout.toLowerCase().split("y").length >= 2) {
-        years = parseInt(timeout.toLowerCase().split("y")[0]);
-        timeout = timeout.toLowerCase().split("y")[1];
+
+    var s = SECONDS.exec(timeout);
+    if(s && s[1]) {
+        delta += +s[1];
+        seconds += +s[1];
     }
-    if (timeout.toLowerCase().split("w").length >= 2) {
-        weeks = parseInt(timeout.toLowerCase().split("w")[0]);
-        timeout = timeout.toLowerCase().split("w")[1];
+
+    var s = MINUTES.exec(timeout);
+    if(s && s[1]) {
+        delta += (+s[1] * 60);
+        minutes += +s[1];
     }
-    if (timeout.toLowerCase().split("d").length >= 2) {
-        days = parseInt(timeout.toLowerCase().split("d")[0]);
-        timeout = timeout.toLowerCase().split("d")[1];
+
+    var s = HOURS.exec(timeout);
+    if(s && s[1]) {
+        delta += (+s[1] * 60 * 60);
+        hours += +s[1]
     }
-    if (timeout.toLowerCase().split("h").length >= 2) {
-        hours = parseInt(timeout.toLowerCase().split("h")[0]);
-        timeout = timeout.toLowerCase().split("h")[1];
+
+    var s = DAYS.exec(timeout);
+    if(s && s[1]) {
+        delta += (+s[1] * 60 * 60 * 24);
+        days += +s[1]
     }
-    if (timeout.toLowerCase().split("m").length >= 2) {
-        minutes = parseInt(timeout.toLowerCase().split("m")[0]);
-        timeout = timeout.toLowerCase().split("m")[1];
-    }
-    if (timeout.toLowerCase().split("s").length >= 2) {
-        seconds = parseInt(timeout.toLowerCase().split("s")[0]);
-    }
-    var absolute = (((hours * 60 * 60) + (minutes * 60) + seconds) * 1000);
-    if (isNaN((hours + minutes + seconds)) || absolute < 1) return false;
+
+    if (isNaN((hours + minutes + seconds)) || delta < 1) return false;
     return {
-        absolute: new Date().getTime() + (((days * 24 * 60 * 60) + (hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
-        relative: (((days * 24 * 60 * 60) + (hours * 60 * 60) + (minutes * 60) + seconds) * 1000),
+        absolute: new Date().getTime() + (delta * 1000),
+        relative: (delta * 1000),
         seconds: seconds,
         minutes: minutes,
         hours: hours,
         days: days,
-        years: years
+        //years: years
     };
 };
 
@@ -254,7 +264,8 @@ function checkReminders(e, args) {
             str += "\n\t" + new Date(parseInt(res.result[i].time)).toUTCString();
             str += "\n\t\tIn **" + convertMS(res.result[i].time - Date.now()) + "**\n\n";
         }
-        e.mention().respond(str);
+        e.mention().respond("Check DM!");
+        e.pm(str);
     });
 }
 
