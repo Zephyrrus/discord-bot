@@ -41,36 +41,43 @@ function groupList(e, args) {
 }
 
 function groupView(e, args) {
-    var group = e._disco.pm.getGroup(args.group, args.where == "here" ? e.serverID : undefined);
+    var dbg = "";
 
+    var group = e._disco.pm.getGroup(args.group, args.where == "here" ? e.serverID : undefined);
+    
     if (group == false) {
         e.mention().respond("This group doesn't exist");
         return;
     }
 
     var str = "```\n";
-
     str += `Group ${group.gid}\n`;
     str += "    Members: \n";
+
     var list = [];
     var users = e._disco.pm.getUsersInGroup(group.gid);
-    users.forEach(function (v) {
-        list.push(e.getName(v));
-    });
-
-    if (list.length > 30) {
+    if(users.length > 30) 
         list = ["Too many users to list (" + users.length + ")!"];
-    }
-
+    else
+        users.forEach(function (v) {
+            list.push(e.getName(v));
+        });
     str += "        " + list.join("\n        ") + "\n";
 
     str += "    Permissions:\n";
     str += "        " + group.permissions.join("\n        ") + "\n";
-
     str += "\n```";
 
     e.respond(str);
 }
+
+/* DEBUG */
+function clock(start) {
+    if ( !start ) return process.hrtime();
+    var end = process.hrtime(start);
+    return Math.round((end[0]*1000) + (end[1]/1000000));
+}
+/* DEBUG */
 
 function groupJoin(e, args) {
     var uid = args.user ? args.user : e.userID;
@@ -84,7 +91,7 @@ function groupJoin(e, args) {
 function groupLeave(e, args) {
     var uid = args.user ? args.user : e.userID;
     var sid = (args.where == "here" ? e.serverID : undefined);
-    var result = e._disco.pm.addUserToGroup(uid, args.group, sid);
+    var result = e._disco.pm.removeUserFromGroup(uid, args.group, sid);
     if (result.success) {
         e.mention().respond(`Removed ${e.getName(uid)} from \`${args.group}\``);
     }
@@ -171,11 +178,11 @@ function groupRoleList(e, args) {
     for (var rid in roles) {
       console.log(roles);
         if (roles.hasOwnProperty(rid)) {
-            str += `${rid} as ${roles[rid].name.replace("@", "[at]")}\n`;
+            str += `[${rid}] <=> [${roles[rid].name.replace("@", "[at]")}]\n`;
         }
     }
 
-    e.mention().text("List of server roles:\n").code(str).respond();
+    e.mention().text("List of server roles:\n").code(str, "xl").respond();
 }
 
 function groupRoleAdd(e, args) {
@@ -187,7 +194,7 @@ function groupRoleAdd(e, args) {
 }
 
 function groupRoleRemove(e, args) {
-    if (e._disco.pm.roleAdd(args.group, args.where == "here" ? e.serverID : undefined, args.role)) {
+    if (e._disco.pm.roleRemove(args.group, args.where == "here" ? e.serverID : undefined, args.role)) {
         e.mention().respond(`Unlinked \`${args.role}\` and \`${args.group}\``);
     } else {
         e.mention().respond("Failed to do that!");
