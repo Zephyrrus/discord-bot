@@ -12,7 +12,7 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
   this.message = message;
   this.rawEvent = rawEvent;
   this.command = configs.command;
-
+  
   this.database = configs.database; // will be deprecated soon-ish
   this.language = configs.language;
   this.config = disco.config; // will be deprecated soon-ish
@@ -26,7 +26,8 @@ function MessageObject(disco, mod, serverID, user, userID, channelID, message, r
 
   this._prepend = "";
   this._postpend = "";
-  
+  this._embed = undefined;
+
   if (rawEvent && rawEvent._extend) {
     for (var i in rawEvent._extend) {
       this[i] = rawEvent._extend[i];
@@ -41,8 +42,10 @@ MessageObject.prototype.respond = function (message, callback) {
   if (typeof (message) == "string") {
     message = this._prepend + message;
   }
-  this._disco.queueMessage(this.channelID, message, callback);
+  this._disco.queueMessage(this.channelID, message, this._embed, callback);
   this._prepend = "";
+  this._embed = undefined;
+
   return this;
 };
 
@@ -131,7 +134,7 @@ MessageObject.prototype.deleteMessage = function (id, channelID, callback) {
 
   id = id || this.rawEvent.d.id;
   channelID = channelID || this.channelID;
-  callback = callback || () => {};
+  callback = callback || ((() => {}))
 
   this._disco.deleteMessage(id, channelID, callback);
   return this;
@@ -177,10 +180,23 @@ MessageObject.prototype.pm = function (message, uid, callback) {
     uid = this.userID;
   }
 
-  callback = callback || () => {};
+  callback = callback || ((() => {}));
 
-  this._disco.queueMessage(uid, message, callback);
+  this._disco.queueMessage(uid, message, this._embed, callback);
   this._prepend = "";
+  return this;
+};
+
+MessageObject.prototype.embed = function (embed, message) {
+  if(typeof (embed) != "object"){
+    return this
+  }
+  this._embed = embed;
+
+  if (typeof (message) == "string") {
+    this._prepend += message;
+  }
+
   return this;
 };
 
