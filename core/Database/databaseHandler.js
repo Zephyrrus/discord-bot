@@ -41,7 +41,7 @@ databaseHandler.prototype.add = function (params, callback) {
  *
  */
 databaseHandler.prototype.insert = function (params, callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
 
     var receivedParams = [];
     var receivedStructure = [];
@@ -106,7 +106,7 @@ databaseHandler.prototype.insert = function (params, callback) {
  *
  */
 databaseHandler.prototype.delete = function (params, callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
     var receivedParams = [];
     var questionMarks = "";
     var paramsToSearch = [];
@@ -135,7 +135,7 @@ databaseHandler.prototype.delete = function (params, callback) {
         paramsToSearch.push(receivedParams[i].value.toString());
     }
 
-    logger.debug("DELETE FROM `" + this.moduleName + "` WHERE " + questionMarks, paramsToSearch);
+    logger.debug("[SQLITE]_DEBUG: DELETE FROM `" + this.moduleName + "` WHERE " + questionMarks, paramsToSearch);
     this.database.run("DELETE FROM `" + this.moduleName + "` WHERE " + questionMarks, paramsToSearch, function (err, row) {
         if (err) {
             logger.error("[SQLITE_ERROR]_DELETE: " + err);
@@ -156,7 +156,7 @@ databaseHandler.prototype.delete = function (params, callback) {
  *
  */
 databaseHandler.prototype.update = function (querryParams, updateParams, callback) {
-    var callback = callback || () => {};
+    var callback = callback || (() => {});
     var receivedQuerry = [];
     var questionMarks = "";
     var paramsToSearch = [];
@@ -215,7 +215,7 @@ databaseHandler.prototype.update = function (querryParams, updateParams, callbac
             finalParams.push(receivedQuerry[i].value.toString());
         }
 
-        logger.debug("UPDATE `" + this.moduleName + "` SET " + updateRowNames + " WHERE " + questionMarks, finalParams);
+        logger.debug("[SQLITE]_DEBUG: UPDATE `" + this.moduleName + "` SET " + updateRowNames + " WHERE " + questionMarks, finalParams);
         this.database.run("UPDATE `" + this.moduleName + "` SET " + updateRowNames + " WHERE " + questionMarks, finalParams, function (err, row) {
             if (err) {
                 logger.error("[SQLITE_ERROR]_UPDATE: " + err);
@@ -227,7 +227,7 @@ databaseHandler.prototype.update = function (querryParams, updateParams, callbac
         return; //pack up boys, we're done here
     }
 
-    logger.debug("UPDATE `" + this.moduleName + "` SET " + updateRowNames, finalParams);
+    logger.debug("[SQLITE]_DEBUG: UPDATE `" + this.moduleName + "` SET " + updateRowNames, finalParams);
     this.database.run("UPDATE `" + this.moduleName + "` SET " + updateRowNames, finalParams, function (err, row) {
         if (err) {
             logger.error("[SQLITE_ERROR]_UPDATE: " + err);
@@ -254,7 +254,7 @@ databaseHandler.prototype.find = function (params, specials, callback) {
         callback = specials;
 
 
-    callback = callback || () => {};
+    callback = callback || (() => {});
     var receivedParams = [];
     var questionMarks = "";
     var paramsToSearch = [];
@@ -299,8 +299,8 @@ databaseHandler.prototype.find = function (params, specials, callback) {
         }
     }
 
-    logger.debug("SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch);
-    this.database.each("SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch, function (err, row) {
+    logger.debug("[SQLITE]_DEBUG: SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch);
+    this.database.each("[SQLITE]_DEBUG: SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch, function (err, row) {
         if (err) {
             logger.error("[SQLITE_ERROR]_SELECT_WUERRY: " + err);
             return (callback && callback({ type: "SQLITEERROR", error: err.stack }, null));
@@ -323,7 +323,7 @@ databaseHandler.prototype.find = function (params, specials, callback) {
  */
 
 databaseHandler.prototype.list = function (callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
     var result = [];
     this.database.each("SELECT * FROM `" + this.moduleName + "`", function (err, row) {
         if (err) {
@@ -480,7 +480,7 @@ var getType = function (typeName) {
 
 //NOT IMPLEMENTANDO
 var validateParameters = function (structure, params, callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
 }
 
 var transformArray = function (arr) {
