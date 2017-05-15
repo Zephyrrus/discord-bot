@@ -31,7 +31,7 @@ function deviantGrab(e, args) {
     // returns a list of page urls that contain images
     function search(url, callback) {
         logger.debug("get " + url);
-        callback = callback || () => {};
+        callback = callback || (() => {});
         request({
             url: url,
             headers: {
@@ -70,7 +70,7 @@ function deviantGrab(e, args) {
     // returns the full image on that page
     function getPage(url, callback) {
         logger.debug("get " + url);
-        callback = callback || () => {};
+        callback = callback || (() => {});
 
         request({
             url: url,

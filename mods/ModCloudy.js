@@ -17,24 +17,43 @@ module.exports = {
             id: "channelID",
             type: "string",
             required: false
-        },
-        {
-            id: "filter",
+        }, {
+            id: "filterN",
+            type: "number",
+            required: false
+        }, {
+            id: "timelimit",
+            type: "number",
+            required: false
+        }],
+    },
+    "godcloudy": {
+        permission: "godcloudy",
+        helpMessage: "cloudy!",
+        category: "Info",
+        handler: doGodCloud,
+        cooldown: 3600000,
+        params: [{
+            id: "channelID",
+            type: "string",
+            required: false
+        }, {
+            id: "filterN",
             type: "number",
             required: false
         }],
     },
     "thunder": {
-      permission: "thunder",
-      helpMessage: "cloudy!",
-      category: "Admin",
-      handler: thunder,
+        permission: "thunder",
+        helpMessage: "cloudy!",
+        category: "Admin",
+        handler: thunder,
     }
 };
 
-function thunder(e, args){
-  generated = [];
-  e.mention().respond("Reseted global limits");
+function thunder(e, args) {
+    generated = [];
+    e.mention().respond("Reseted global limits");
 }
 
 function doCanvas(sortedList, limit, callback) {
@@ -57,18 +76,18 @@ function doCanvas(sortedList, limit, callback) {
 
 
     var layout = cloud().size(size)
-        .canvas(function () {
+        .canvas(function() {
             return new Canvas(1, 1);
         })
         .words(words)
         .padding(5)
-        .rotate(function () {
+        .rotate(function() {
             //return~~ (Math.random() * 2) * 90;
             return rotations[Math.floor(Math.random() * rotations.length)];
         })
         .spiral("archimedean")
         .font("Impact")
-        .fontSize(function (d) {
+        .fontSize(function(d) {
             return d.size;
         })
         .on("end", end);
@@ -87,7 +106,7 @@ function doCanvas(sortedList, limit, callback) {
   		point = null;
   		_results = [];*/
 
-        words.forEach(function (e) {
+        words.forEach(function(e) {
             /*point = points.pick(point);
     		_ref = RYB.rgb.apply(RYB, point).map(function(x) {
       			return Math.floor(255 * x);
@@ -118,7 +137,7 @@ function svgRender(width, height) {
     this.currentTag = [];
 }
 
-svgRender.prototype.append = function (tag) {
+svgRender.prototype.append = function(tag) {
     var indent = "\t";
     for (var i = 0; i < this.currentTag.length; i++) {
         indent += "\t";
@@ -131,7 +150,7 @@ svgRender.prototype.append = function (tag) {
     return this;
 };
 
-svgRender.prototype.attr = function (attribute, value) {
+svgRender.prototype.attr = function(attribute, value) {
     if (this.currentTag.length == 0) return this;
     this.svg = this.svg.substring(0, this.svg.length - 2); // pop the >
     this.svg += `${attribute}="${value}" >\n`;
@@ -139,7 +158,7 @@ svgRender.prototype.attr = function (attribute, value) {
     return this;
 };
 
-svgRender.prototype.applyStyle = function () {
+svgRender.prototype.applyStyle = function() {
     if (this.currentTag.length == 0) return this;
     this.svg = this.svg.substring(0, this.svg.length - 2); // pop the >
     this.svg += `style="${this._style}" >\n`;
@@ -147,12 +166,12 @@ svgRender.prototype.applyStyle = function () {
     return this;
 };
 
-svgRender.prototype.style = function (attribute, value) {
+svgRender.prototype.style = function(attribute, value) {
     this._style += `${attribute}:${value}; `;
     return this;
 };
 
-svgRender.prototype.end = function (text) {
+svgRender.prototype.end = function(text) {
     var indent = "";
     for (var i = 0; i < this.currentTag.length; i++) {
         indent += "\t";
@@ -171,7 +190,7 @@ svgRender.prototype.end = function (text) {
     return this;
 };
 
-svgRender.prototype.save = function () {
+svgRender.prototype.save = function() {
     return (this.svg += "</svg>");
 };
 
@@ -202,7 +221,7 @@ function sortIt(unsortable, trash) {
             sortable.push([element, unsortable[element]]);
     }
 
-    sortable.sort(function (a, b) {
+    sortable.sort(function(a, b) {
         return b[1] - a[1];
     }); //reverse sort, fuk u all
     return sortable;
@@ -219,7 +238,7 @@ function getColor() {
     return '#' + colors[Math.floor(Math.random() * colors.length)];
 }
 
-var elapsed_time = function (note) {
+var elapsed_time = function(note) {
     var precision = 3; // 3 decimal places
     var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
     console.log(process.hrtime(start)[0] + " s, " + elapsed.toFixed(precision) + " ms - " + note); // print message + time
@@ -230,7 +249,7 @@ function writeFile(content, extension) {
     extension = extension || "txt";
     var fs = require('fs');
     if (typeof content == "object") content = JSON.stringify(content, null, '\t');
-    fs.writeFile("dump." + extension, content, function (err) {
+    fs.writeFile("dump." + extension, content, function(err) {
         if (err) {
             return console.log(err);
         }
@@ -243,124 +262,158 @@ function Clamper(min, max) {
     this.min = min;
     this.max = max;
 
-    this.normalize = function (x) {
+    this.normalize = function(x) {
         return ((x - this.min) / (this.max - this.min));
     };
 
     //return this;
 }
 
-//TODO: limit cloudy 12h/channel
-function getMessages(e, channelID, callback) {
+function getMessages(e, channelID, genAll, timelimit, cb) {
+    var counter = {};
+    var maxTime = Date.now() - timelimit;
 
-    var maxTime = Date.now() - 86400000;
-    var count = {};
-
-    function _getMessage(channelID, limit, callback, currentSlice, before, maximumSlices, retries) {
-        currentSlice = currentSlice || 0;
-        retries = retries || 0;
-        var o = {
-            channel: channelID,
-            before: before,
-            limit: 100
-        };
-        e._disco.bot.getMessages(o, function (error, messageArr) {
-            if (error) {
-                console.log(error);
-                return _getMessage(channelID, limit, callback, currentSlice, before, maximumSlices, retries++);
+    function remove(before, count, callback) {
+        request({
+            url: "https://discordapp.com/api/channels/" + channelID + "/messages?limit=" + count + (before ? "&before=" + before : ''),
+            headers: {
+                authorization: e._disco.bot.internals.token
+            }
+        }, function(err, response, body) {
+            if (err) {
+                callback(err);
+                return;
             }
 
-            if (retries > 5) return callback();
+            var data = JSON.parse(body);
+            console.log('called with', before);
+            var last = null;
 
-            if (!messageArr) {
-                _getMessage(channelID, limit, callback, currentSlice, before, maximumSlices, retries++, callback);
+            if (data.length != 0) {
+                for (var i = 0; i < data.length; i++) {
+                    var timestamp = Math.floor(new Date(Date.parse(data[i].timestamp)));
+                    if (!genAll && timestamp < maxTime) return callback(null, counter, null);;
+                    //console.log(data[i].content);
+                    data[i].content.toLowerCase().split(" ").forEach(function(e) {
+                        e = e.trim();
+                        if (e == "") return;
+                        e = e.replace(/(\*\*|\*|__|\~\~)/gi, "");
+                        if (counter[e]) counter[e] += 1;
+                        else counter[e] = 1;
+                    });
+                }
+                callback(null, data, data[data.length - 1].id);
+            } else {
+                callback(null, counter, null);
             }
-
-            for (var i = 0; i < messageArr.length; i++) {
-                var timestamp = Math.floor(new Date(Date.parse(messageArr[i].timestamp)));
-                if (timestamp < maxTime) return callback();
-                //console.log(messageArr[i].content);
-                messageArr[i].content.toLowerCase().split(" ").forEach(function (e) {
-                    e = e.trim();
-                    if (e == "") return;
-                    if (count[e]) count[e] += 1;
-                    else count[e] = 1;
-                });
-            }
-            if (messageArr.length > 0) {
-                retries = 0;
-                _getMessage(channelID, limit, callback, currentSlice++, messageArr[messageArr.length - 1].id, maximumSlices, retries, callback);
-            }
-
         });
     }
 
+
+    function removeMore(before, count, callback) {
+        var limit = count > 100 ? 100 : count;
+        remove(before, limit, function(err, data, last) {
+            if (err || !data) {
+                callback(err);
+            }
+
+            if (count - limit <= 0) {
+                callback(err, data, last);
+            } else {
+                removeMore(err, count - limit, callback);
+            }
+        });
+    }
+
+    function iterate(err, data, last) {
+        if (err) {
+            e.code(err.message).respond();
+            cb(err, null);
+            return;
+        }
+        if (last) {
+            removeMore(last, 100, iterate);
+        } else {
+            return cb && cb(null, counter);
+        }
+    }
     e.respond(`Generating cloudy for channel \`${channelID}\`, please wait. (it can take up to 2 minutes for me to render it)`);
-    _getMessage(channelID, 1000, function () {
-        return callback && callback(null, count);
-    });
+    removeMore(undefined, 100, iterate);
 }
 
+
+function doGodCloud(e, args) {
+    args.genAll = true;
+    tryCloud(e, args);
+}
 
 function tryCloud(e, args) {
     var start = process.hrtime();
     var minLen = 4; // filters out with len 0-3
+    var timeLimit = args.timelimit || 86400000;
     args.channelID = args.channelID || e.channelID;
 
-    if (generated[args.channelID] && (Date.now() - generated[args.channelID].timestamp) < 21600000){
-      e.mention().respond("Can't generate cloud for this channel because there was one already generated in the last 6h");
-      return;
+    if (generated[args.channelID] && (Date.now() - generated[args.channelID].timestamp) < 21600000) {
+        e.mention().respond("Can't generate cloud for this channel because there was one already generated in the last 6h");
+        return;
     }
     generated[args.channelID] = {};
     generated[args.channelID].timestamp = Date.now();
 
-    if (args.filter && !isNaN(args.filter)) {
-        minLen = args.flags.filter || 4;
+    if (args.filterN && !isNaN(args.filterN)) {
+        minLen = args.filterN || 4;
     }
 
-    getMessages(e, args.channelID, function (err, res) {
-        if (err) return (e.mention().respond("Can't generate a cloud."));
-        var sorted = sortIt(res, minLen);
-        doCanvas(sorted, 2000, function (err, res) {
-            var formData = {
-                raindrop: e._disco.config.cloud.rain,
-                //upfile:
-                upfile: {
-                    value: res + `<!-- {channelID:'${e.channelID}', serverID:'${e.serverID}', timestamp:'${Date.now()}', userID:'${e.userID}' } -->`,
-                    options: {
-                        filename: 'thing.svg',
-                        contentType: 'image/svg+xml'
+    try {
+        getMessages(e, args.channelID, args.genAll, timeLimit, function(err, res) {
+            if (err) return (e.mention().respond("Can't generate a cloud."));
+            var sorted = sortIt(res, minLen);
+            doCanvas(sorted, 2000, function(err, res) {
+                var formData = {
+                    raindrop: e._disco.config.cloud.rain,
+                    //upfile:
+                    upfile: {
+                        value: res + `<!-- {channelID:'${e.channelID}', serverID:'${e.serverID}', timestamp:'${Date.now()}', userID:'${e.userID}' } -->\n<!-- ${JSON.stringify(sorted).replace(/\-\-/g, '&#x002D;&#x002D;')} -->`,
+                        options: {
+                            filename: 'thing.svg',
+                            contentType: 'image/svg+xml'
+                        }
                     }
-                }
-            };
-            request.post({ url: e._disco.config.cloud.backend, formData: formData }, function optionalCallback(err, httpResponse, body) {
-                if (err) {
-                    generated[args.channelID].timestamp = 0;
-                    e.logger.error(err);
-                    return e.mention().respond("Failed generating word cloud, can't connect to backend!");
-                }
-                try{
-                  var response = JSON.parse(body);
-                  if(response.status == "success")
-                    e.mention().respond("Finished generating word cloud.\nYou can find it at http://zephy.xyz/cloud/" + response.fileName + "." +response.ext + ".\nIt took me **" + elapsed_time(start) + "** to generate it for you\nFiltered out every word with len < **" + minLen + "**");
-                  else {
-                    e.mention().respond("Failed uploading cloud to back-end!");
-                    e.logger.error(response);
-                    generated[args.channelID].timestamp = 0;
-                  }
-                }catch(e){
-                  e.mention().respond("Failed generating word cloud, back-end returned invalid data!");
-                  return;
-                }
+                };
+                request.post({
+                    url: e._disco.config.cloud.backend,
+                    formData: formData
+                }, function optionalCallback(err, httpResponse, body) {
+                    if (err) {
+                        generated[args.channelID].timestamp = 0;
+                        e.logger.error(err);
+                        return e.mention().respond("Failed generating word cloud, can't connect to backend!");
+                    }
+                    try {
+                        var response = JSON.parse(body);
+                        if (response.status == "success")
+                            e.mention().respond("Finished generating word cloud.\nYou can find it at http://zephy.xyz/cloud/" + response.fileName + "." + response.ext + ".\nIt took me **" + elapsed_time(start) + "** to generate it for you\nFiltered out every word with len < **" + minLen + "**");
+                        else {
+                            e.mention().respond("Failed uploading cloud to back-end!");
+                            e.logger.error(response);
+                            generated[args.channelID].timestamp = 0;
+                        }
+                    } catch (e) {
+                        e.mention().respond("Failed generating word cloud, back-end returned invalid data!");
+                        return;
+                    }
 
+                });
             });
-        });
 
-    });
+        });
+    } catch (ex) {
+        return e.mention().respond("Failed generating word cloud, make sure the id was correct!");
+    }
 }
 
 
-var elapsed_time = function (startTime, note) {
+var elapsed_time = function(startTime, note) {
     var precision = 3; // 3 decimal places
     var elapsed = process.hrtime(startTime)[1] / 1000000; // divide by a million to get nano to milli
     return (process.hrtime(startTime)[0] + " s, " + elapsed.toFixed(precision) + " ms" + (note ? " - " + note : "")); // print message + time

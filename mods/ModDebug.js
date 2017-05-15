@@ -1,5 +1,6 @@
-var utils = require("./common/utils.js")
+var utils = require("./common/utils.js");
 var execSync = require('child_process').execSync;
+var EmbedGenerator = utils.EmbedGenerator;
 
 module.exports = {
     "MODULE_HEADER": {
@@ -12,13 +13,30 @@ module.exports = {
     "debug": {
         handler: tryHelp,
         permission: "debug",
-        params: [{ id: "command", type: "string", required: true }],
+        params: [{
+            id: "command",
+            type: "string",
+            required: true
+        }],
         category: "debug",
-        child: [
-            { name: "roles", handler: getRoles, helpMessage: "gets the roles on the current server" },
-            { name: "help", handler: doHelp, helpMessage: "gets help about current command", params: [{ id: "command", type: "string", required: true }] },
-            { name: "json", handler: dumpJson, helpMessage: "shows a formated json of the response received from the server" }
-        ]
+        child: [{
+            name: "roles",
+            handler: getRoles,
+            helpMessage: "gets the roles on the current server"
+        }, {
+            name: "help",
+            handler: doHelp,
+            helpMessage: "gets help about current command",
+            params: [{
+                id: "command",
+                type: "string",
+                required: true
+            }]
+        }, {
+            name: "json",
+            handler: dumpJson,
+            helpMessage: "shows a formated json of the response received from the server"
+        }]
     },
     "help": {
         category: "info",
@@ -40,23 +58,27 @@ module.exports = {
         helpMessage: "gets information about a specific user.",
         category: "Info",
         handler: doWhois,
-        params: [{ id: "userID", type: "mention", required: false, canError: true }]
+        params: [{
+            id: "userID",
+            type: "mention",
+            required: false,
+            canError: true
+        }]
     },
     "log": {
         helpMessage: "log",
         category: "Info",
-        params: [{ id: "channelID", type: "string", required: false }],
+        params: [{
+            id: "channelID",
+            type: "string",
+            required: false
+        }],
         handler: getMessages,
     },
     "crash": {
         helpMessage: "simulates an error in parser chain",
         category: "info",
         handler: doCrash
-    },
-    "petition": {
-        helpMessage: "checks brexit petition result",
-        category: "info",
-        handler: getPetition
     },
     "eval": {
         permission: "dangerous.eval",
@@ -120,17 +142,17 @@ function status(e, args) {
         if (e._disco.cm.commands[cmd].child) commandCount += Object.keys(e._disco.cm.commands[cmd].child).length;
     }
     var now = new Date();
-    e.respond("- Author: <@" + e._disco.config.general.masterID + "> [Zephy]\n\
-- Version: " + e._disco._version + "\n\
-- Library: Discord.io \n\
-- Source code: https://github.com/Zephyrrus/discord-bot/ \n\
-**Stats for current instance**\n\
-- Uptime: " + utils.tm(e._disco._startTime / 1000) + " [ " + utils.getUptimeString(e._disco._startTime / 1000) + "]\n\
-- Server time: " + now.toString() + "\n\
-- Connected to: " + Object.keys(e._disco.bot.servers).length + " servers, " + channelCount + " channels, " + userCount + " users\n\
-- Modules: " + Object.keys(e._disco.cm.modules).length + "\n\
-- Commands: " + (Object.keys(e._disco.cm.commands).length + commandCount) + "\n\
-- Channel NSFW filter: " + !e.allowNSFW + " (TRUE means no NSFW in this channel/server).");
+    var rEmbed = new EmbedGenerator();
+    rEmbed.setAuthor("Author: Zephy", "https://github.com/Zephyrrus/discord-bot/")
+        .addField("Version", e._disco._version, true)
+        .addField("Library", "Discord.io", true)
+        .addField("Uptime", utils.getUptimeString(e._disco._startTime / 1000))
+        .addField("Server Time", now.toString())
+        .addField("Connected to", Object.keys(e._disco.bot.servers).length + " servers, " + channelCount + " channels, " + userCount + " users")
+        .addField("Loaded Modules", Object.keys(e._disco.cm.modules).length)
+        .addField("Commands", Object.keys(e._disco.cm.commands).length + commandCount)
+        .addField("NSFW allowed ?", e.allowNSFW);
+    e.embed(rEmbed.generate()).respond();
 }
 
 function getRoles(e, args) {
@@ -165,7 +187,7 @@ function doHelp(e, args) {
 function getModules(e, args) {
     var str = "```\nCurrently loaded modules:\n";
     var plugins = Object.keys(e._disco.cm.modules);
-    plugins.forEach(function (v) {
+    plugins.forEach(function(v) {
         var info = e._disco.cm.modules[v];
         str += `\t${info.moduleName} [${v}], v${info.version} ${info.author ? "(by " + info.author + ")" : ""} ${info.description}\n`;
     });
@@ -197,7 +219,7 @@ function dumpJson(e, args) {
 }
 
 function doWhois(e, args) {
-    args.userID = args.userID // || e.userID;
+    args.userID = args.userID || e.userID;
     var mentionedUser;
     str = "USER-INFO: \n";
     if (e._disco.bot.servers[e.serverID]) {
@@ -218,39 +240,85 @@ function doWhois(e, args) {
         e.mention().respond("I have no information about that user.");
         return;
     }
-    str = "- USER-INFO: \n";
-    str += stradd || "";
-    str += `\tName: ${e.clean(mentionedUser.username)}\n`;
-    str += `\tID: ${mentionedUser.id}\n`;
-    str += `\tID generation date: ${new Date(parseInt(((+args.userID).toString(2)).slice(0, -22), 2) + 1420070400000).toUTCString()}\n`;
-    str += `\tDiscriminator: ${mentionedUser.discriminator}\n`;
-    str += `\tAvatar URL: https://cdn.discordapp.com/avatars/${mentionedUser.id}/${mentionedUser.avatar}.jpg\n`;
-    str += "\n- SERVER-INFO: \n";
-    str += `\tJoined at: ${new Date(Date.parse(mentionedUser.joined_at)).toUTCString()}\n`;
-    str += `\tCurrent status: ${mentionedUser.status ? mentionedUser.status : "Offline"}\n`;
-    if (mentionedUser.game) str += `\tPlaying: ${e.clean(mentionedUser.game.name)}`;
-    /*str += `\tRoles: `;
+
+    roles = "";
     for (var i = 0; i < mentionedUser.roles.length; i++) {
-      console.log(e._disco.bot.servers[e.serverID].roles);
-        str += e.clean(e._disco.bot.servers[e.serverID].roles[mentionedUser.roles[i]].name);
-        if (i + 1 != mentionedUser.roles.length) str += ", ";
-    }*/
-    str += "\n\n";
-    str += `- VOICE-INFO:\n\tMuted:${mentionedUser.mute}\n\tDeafen:${mentionedUser.deaf}`;
-    e.code(str, "diff").respond(); // changed to diff from CSS
+        roles += e.clean(e._disco.bot.servers[e.serverID].roles[mentionedUser.roles[i]].name);
+        if (i + 1 != mentionedUser.roles.length) roles += ", ";
+    }
+
+    e.embed({
+        "type": "rich",
+        "thumbnail": {
+            "width": 0,
+            "url": `https://cdn.discordapp.com/avatars/${mentionedUser.id}/${mentionedUser.avatar}.jpg\n`,
+            "height": 0
+        },
+        "fields": [{
+            "name": "ID",
+            "value": mentionedUser.id,
+            "inline": true
+        }, {
+            "name": "Nickname",
+            "value": mentionedUser.nick || "None",
+            "inline": true
+        }, {
+            "name": "Guild Join Date",
+            "value": new Date(mentionedUser.joined_at).toDateString(),
+            "inline": true
+        }, {
+            "name": "Discord Join Date",
+            "value": new Date((mentionedUser.id / 4194304) + 1420070400000).toDateString(),
+            "inline": true
+        }, {
+            "name": "Roles",
+            "value": roles,
+            "inline": true
+        },
+        {
+            "value": mentionedUser.status ? mentionedUser.status : "Offline",
+            "name": "Status",
+            "inline": true
+        }],
+        "color": mentionedUser.color,
+        /*"author": {
+            "name": "Zephy#1606"
+        }*/
+    }).respond();
 }
 
-var databaseStructure = [
-    { name: "id", type: "autonumber", primaryKey: true },
-    { name: "channelID", type: "string", required: true },
-    { name: "timestamp", type: "integer", required: true, unique: true },
-    { name: "name", type: "string", required: true },
-    { name: "userID", type: "string", required: true },
-    { name: "content", type: "string", required: true },
-    { name: "messageID", type: "string", required: true }
-];
+var databaseStructure = [{
+    name: "id",
+    type: "autonumber",
+    primaryKey: true
+}, {
+    name: "channelID",
+    type: "string",
+    required: true
+}, {
+    name: "timestamp",
+    type: "integer",
+    required: true,
+    unique: true
+}, {
+    name: "name",
+    type: "string",
+    required: true
+}, {
+    name: "userID",
+    type: "string",
+    required: true
+}, {
+    name: "content",
+    type: "string",
+    required: true
+}, {
+    name: "messageID",
+    type: "string",
+    required: true
+}];
 
-var database = new (require("../core/Database/databaseHandler.js"))('logs', databaseStructure);
+var database = new(require("../core/Database/databaseHandler.js"))('logs', databaseStructure);
 
 function getMessages(e, args) {
     //STORE MESSAGE ID
@@ -260,8 +328,12 @@ function getMessages(e, args) {
     function _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries) {
         currentSlice = currentSlice || 0;
         retries = retries || 0;
-        var o = { channel: e.channelID, before: before, limit: 100 };
-        e._disco.bot.getMessages(o, function (error, messageArr) {
+        var o = {
+            channel: e.channelID,
+            before: before,
+            limit: 100
+        };
+        e._disco.bot.getMessages(o, function(error, messageArr) {
             if (error) {
                 return _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++);
                 console.log(error);
@@ -269,9 +341,18 @@ function getMessages(e, args) {
 
             if (retries > 5) return;
 
-            if (!messageArr) { _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++); }
+            if (!messageArr) {
+                _getMessage(channelID, limit, currentSlice, before, maximumSlices, retries++);
+            }
             for (var i = 0; i < messageArr.length; i++) {
-                database.insert({ messageID: messageArr[i].id, channelID: messageArr[i].channel_id, name: messageArr[i].author.username, content: messageArr[i].content, userID: messageArr[i].author.id, timestamp: Math.floor(new Date(Date.parse(messageArr[i].timestamp))) }, function (err) {
+                database.insert({
+                    messageID: messageArr[i].id,
+                    channelID: messageArr[i].channel_id,
+                    name: messageArr[i].author.username,
+                    content: messageArr[i].content,
+                    userID: messageArr[i].author.id,
+                    timestamp: Math.floor(new Date(Date.parse(messageArr[i].timestamp)))
+                }, function(err) {
                     if (err) return;
                 });
             }
@@ -289,11 +370,18 @@ function getMessages(e, args) {
 }
 
 var last;
+
 function getPetition(e, args) {
-    utils.getJson('https://petition.parliament.uk/petitions/131215.json', function (err, res) {
+    utils.getJson('https://petition.parliament.uk/petitions/131215.json', function(err, res) {
         if (err) return e.mention().respond("Can't fetch results");
-        if (!last) last = { count: res.data.attributes.signature_count, time: Date.now() };
+        if (!last) last = {
+            count: res.data.attributes.signature_count,
+            time: Date.now()
+        };
         e.mention().respond(`Results for <https://petition.parliament.uk/petitions/131215>\nCurrent signature count **${res.data.attributes.signature_count}**. \nDifference since last check (*${utils.convertS((Date.now() - last.time) / 1000)}*): **${res.data.attributes.signature_count - last.count}**`);
-        last = { count: res.data.attributes.signature_count, time: Date.now() };
+        last = {
+            count: res.data.attributes.signature_count,
+            time: Date.now()
+        };
     });
 }

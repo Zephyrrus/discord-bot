@@ -14,6 +14,7 @@ var parser = require('moment-parser');
 var logger = require("winston");
 var reminderFromString = /[^;%$\|]*/;
 var uidFromMention = /<@([0-9]+)>/;
+var EmbedGenerator = require("./common/utils.js").EmbedGenerator;
 
 var cachedReminder;
 var autoCacher;
@@ -138,7 +139,7 @@ var parseUgly = function (timeout) {
         minutes: minutes,
         hours: hours,
         days: days,
-        //years: years
+        years: years
     };
 };
 
@@ -224,7 +225,7 @@ function getReminder(callback) { // gets the top reminder and returns a reminder
         });
 }
 
-function finishRemind(reminderObject, expired) { // set expired to true to show a message along the lines "I am sorry for being late, you told me to remind you on DATE about MESSAGE"
+function finishRemind(reminderObject, expired, retry) { // set expired to true to show a message along the lines "I am sorry for being late, you told me to remind you on DATE about MESSAGE"
     //set id as reminded
     //get top reminder, when other reminder ends (but calling prepareReminder)
     var message = `<@${reminderObject.userID}> **EXPLOSION**\n\n`; //MENTION **REMINDER**\n\n [Sorry, I forgot to remind you of] You told me to remind you of ```MESSAGE`` [**time** ago]. \n\n I was late [**lateTime**];
@@ -236,9 +237,17 @@ function finishRemind(reminderObject, expired) { // set expired to true to show 
     if (expired) message += "I was told to remind you of it in **" + convertMS(reminderObject.relative) + "**";
     console.log("FINISHREMINDER", reminderObject);
 
-    _disco.queueMessage((reminderObject.private == '1' ? reminderObject.userID : reminderObject.channelID), message, function (err, res) {
-        if (err) return (logger.error("[REMINDER]: Can't remind reminder with id ", reminderObject.id, " and message: ", reminderObject.message));
-        //TODO: retry in 2 minutes or delete;
+    _disco.queueMessage((reminderObject.private == '1' ? reminderObject.userID : reminderObject.channelID), message, undefined, function (err, res) {
+        if (err) {
+		if (!retry) {
+			finishRemind(reminderObject, expired, 1);
+			return;
+		} 
+		else {
+			logger.error("[REMINDER]: Can't remind reminder with id ", reminderObject.id, " and message: ", reminderObject.message);
+		}        
+	}
+	//TODO: retry in 2 minutes or delete;
         database.update({ "id": reminderObject.id }, { "reminded": true }, function (err, res) {
             if (err) return (logger.error("[REMINDER]: Can't delete reminder with id ", reminderObject.id, " and message: ", reminderObject.message));
             logger.debug("[REMINDER]: Finished reminding reminder with id ", reminderObject.id);

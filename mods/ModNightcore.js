@@ -171,6 +171,6 @@ function getList(e, args){
       for (var i = 0; i < res.count; i++) {
           result += res.result[i].youtubeID + " - **" + res.result[i].title + "**\n";
       }
-      e.pmRespondLong("Listing every nightcore I know: [Count: **" + count + "**]\n\n" + result + "");
+      e.pm("Listing every nightcore I know: [Count: **" + count + "**]\n\n" + result + "");
   });
 }

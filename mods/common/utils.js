@@ -9,57 +9,62 @@ module.exports = {
   tm: tm,
   convertMS: convertMS,
   getJson: getJson,
-  convertS: convertS
+  convertS: convertS,
+  EmbedGenerator: EmbedGenerator
 }
 
-function getJSONHTTP(url, callback){
-  http.get(url, function(res){
+function getJSONHTTP(url, callback) {
+  http.get(url, function(res) {
     var body = '';
-    res.on('data', function(chunk){
-        body += chunk;
+    res.on('data', function(chunk) {
+      body += chunk;
     });
-    res.on('end', function(){
-        return (callback && callback(null, body));
+    res.on('end', function() {
+      return (callback && callback(null, body));
     });
-  }).on('error', function(e){
+  }).on('error', function(e) {
     return (callback && callback(e, null));
-      console.log("[getJson] Got an error: ", {error: e});
+    console.log("[getJson] Got an error: ", {
+      error: e
+    });
   });
 }
 
-function getJSONHTTPS(url, callback){
-  http.get(url, function(res){
+function getJSONHTTPS(url, callback) {
+  http.get(url, function(res) {
     var body = '';
-    res.on('data', function(chunk){
-        body += chunk;
+    res.on('data', function(chunk) {
+      body += chunk;
     });
-    res.on('end', function(){
-        return (callback && callback(null, body));
+    res.on('end', function() {
+      return (callback && callback(null, body));
     });
-  }).on('error', function(e){
+  }).on('error', function(e) {
     return (callback && callback(e, null));
-      console.log("[getJson] Got an error: ", {error: e});
+    console.log("[getJson] Got an error: ", {
+      error: e
+    });
   });
 }
 
 function getJson(url, callback) {
   var headers = {
-      'User-Agent':       'Megu discord bot.',
-      'Content-Type':     'application/x-www-form-urlencoded'
+    'User-Agent': 'Megu discord bot.',
+    'Content-Type': 'application/x-www-form-urlencoded'
   }
 
   // Configure the request
   var options = {
-      url: url,
-      method: 'GET',
-      headers: headers,
-      json: true
+    url: url,
+    method: 'GET',
+    headers: headers,
+    json: true
   }
 
-  request(options, function (err, res, body) {
-    if(err) return (callback && callback(err, null));
+  request(options, function(err, res, body) {
+    if (err) return (callback && callback(err, null));
     if (!err && res.statusCode == 200) {
-        return (callback && callback(null, body));
+      return (callback && callback(null, body));
     }
     return (callback && callback("Not 200 response", null));
   });
@@ -90,7 +95,7 @@ function getUptimeString(startTime) {
   return uptime;
 }
 
-function convertMS(ms){
+function convertMS(ms) {
   return convertS(seconds); // this is cause a naming error in old modules, they send s but I confused then with ms
 }
 /**
@@ -100,22 +105,22 @@ function convertMS(ms){
  * @return {string}         The phrase describing the the amount of time
  */
 function convertS(seconds) {
-    var levels = [
-        [Math.floor(seconds / 31536000), 'years'],
-        [Math.floor((seconds % 31536000) / 604800), 'weeks'],
-        [Math.floor(((seconds % 31536000) % 604800) / 86400), 'days'],
-        [Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
-        [Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
-        [((((seconds % 31536000) % 86400) % 3600) % 60).toFixed(2), 'seconds'],
-    ];
-    var returntext = '';
+  var levels = [
+    [Math.floor(seconds / 31536000), 'years'],
+    [Math.floor((seconds % 31536000) / 604800), 'weeks'],
+    [Math.floor(((seconds % 31536000) % 604800) / 86400), 'days'],
+    [Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
+    [Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
+    [((((seconds % 31536000) % 86400) % 3600) % 60).toFixed(2), 'seconds'],
+  ];
+  var returntext = '';
 
-    for (var i = 0, max = levels.length; i < max; i++) {
-        if ( levels[i][0] === 0 ) continue;
-        if ( levels[i][0] === 0.00 ) continue;
-        returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length-1): levels[i][1]);
-    };
-    return returntext.trim();
+  for (var i = 0, max = levels.length; i < max; i++) {
+    if (levels[i][0] === 0) continue;
+    if (levels[i][0] === 0.00) continue;
+    returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length - 1) : levels[i][1]);
+  };
+  return returntext.trim();
 }
 
 
@@ -124,6 +129,134 @@ function tm(unix_tm) {
   return /*dt.getHours() + '/' + dt.getMinutes() + '/' + dt.getSeconds() + ' -- ' + */ dt;
 }
 
+function EmbedGenerator(title, description, url, timestamp, color) {
+  this._title = title;
+  this._description = description;
+  this._url = url;
+  this._timestamp = timestamp;
+  this._color = color;
+  this._fields = [];
+  this._thumb = undefined;
+  this._author = undefined;
+  this._footer = undefined;
+  var self = this;
+
+  Object.defineProperty(this, "title", {
+    get: function() {
+      return this._title;
+    },
+    set: function(value) {
+      this._title = value;
+    }
+  });
+
+  Object.defineProperty(this, "description", {
+    get: function() {
+      return this._description;
+    },
+    set: function(value) {
+      this._description = value;
+    }
+  });
+
+  Object.defineProperty(this, "url", {
+    get: function() {
+      return this._url;
+    },
+    set: function(value) {
+      this._url = value;
+    }
+  });
+
+  Object.defineProperty(this, "color", {
+    get: function() {
+      return this._color;
+    },
+    set: function(value) {
+      this._color = color;
+    }
+  });
+
+  Object.defineProperty(this, "timestamp", {
+    get: function() {
+      return this._timestamp;
+    },
+    set: function(value) {
+      this._timestamp = value;
+    }
+  });
+}
+
+EmbedGenerator.prototype.addField = function(name, value, inline) {
+  value = value || "None";
+  inline = inline || false;
+
+  if (typeof(name) != 'string' || typeof(value) != 'string') {
+    return this;
+  }
+  if (name == "") return this;
+  if (inline && typeof(inline) != 'boolean')
+    inline = false;
+
+  this._fields.push({
+    'name': name,
+    'value': value,
+    'inline': inline
+  });
+  return this;
+};
+
+EmbedGenerator.prototype.setThumb = function(url, width, height) {
+  if (typeof(url) != 'string') {
+    return this;
+  }
+  width = width || 0;
+  height = height || 0;
+  this._thumb = {
+    url: url,
+    width: width,
+    height: height
+  };
+  return this;
+};
+
+EmbedGenerator.prototype.setAuthor = function(name, url, icon_url) {
+  if (typeof(name) != 'string') {
+    return this;
+  }
+  this._author = {
+    name: name,
+    url: url,
+    icon_url: icon_url
+  };
+  return this;
+};
+
+EmbedGenerator.prototype.setFooter = function(text, icon_url) {
+  if (typeof(text) != 'string') {
+    return this;
+  }
+  this._footer = {
+    text: text,
+    icon_url: icon_url
+  };
+  return this;
+};
+
+EmbedGenerator.prototype.create = function(){
+  return {
+    type: 'rich',
+    title: this._title,
+    description: this._description,
+    fields: this._fields,
+    author: this._author,
+    footer: this._footer
+  };
+};
+
+EmbedGenerator.prototype.generate = function(){
+  return this.create();
+};
 
 /*
 function c(x) {

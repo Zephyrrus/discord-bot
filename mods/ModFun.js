@@ -1,5 +1,6 @@
 var request = require("request");
 var cheerio = require("cheerio");
+var CryptoJS = require("crypto-js");
 var cleverBot = require("./clever/_cleverApi.js");
 var cleverInstance;
 
@@ -147,6 +148,16 @@ module.exports = {
             type: "string",
             required: false
         }]
+    },
+    "size": {
+        helpMessage: "gets the size",
+        category: "Entertainment",
+        handler: doSize,
+        params: [{
+            id: "user",
+            type: "mention",
+            required: false
+        }]
     }
 };
 
@@ -157,7 +168,7 @@ function doSetup() {
 
 function beClever(e, args) {
     try {
-        cleverInstance.write(args._str, function (res) {
+        cleverInstance.write(args._str, function(res) {
             //console.log(res);
             if (res.message)
                 e.mention().respond(res.message);
@@ -169,13 +180,13 @@ function beClever(e, args) {
 
 
 function doDance(e, args) {
-    e.respond("(/'-')/", function (err, response) {
+    e.respond("(/'-')/", function(err, response) {
         if (err) return;
-        e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function (err, response) {
+        e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function(err, response) {
             if (err) return;
-            e.editMessage(response.id, e.channelID, "(/'-')/", function (err, response) {
+            e.editMessage(response.id, e.channelID, "(/'-')/", function(err, response) {
                 if (err) return;
-                e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function (err, response) {
+                e.editMessage(response.id, e.channelID, "\u30FD('-'\u30FD)", function(err, response) {
                     if (err) return;
                 });
             });
@@ -218,7 +229,7 @@ function doGangsta(e, args) {
         form: {
             translatetext: args.text + args._str
         }
-    }, function (err, response, body) {
+    }, function(err, response, body) {
         if (err) {
             console.log(err);
             return;
@@ -237,7 +248,7 @@ function babyDontHurtMe(e, args) {
 }
 
 function fancy(e, args) {
-    
+
     args.text += args._str;
     if (args.text.length > 20) {
         e.mention().respond("I don't fancy that.");
@@ -253,8 +264,8 @@ function fancy(e, args) {
 }
 
 function shuu(e, args) {
-    e.mention().respond("Grabbing a random image from e-shuushuu.net", function (err, res) {
-        request("http://e-shuushuu.net/random.php", function (err, response, body) {
+    e.mention().respond("Grabbing a random image from e-shuushuu.net", function(err, res) {
+        request("http://e-shuushuu.net/random.php", function(err, response, body) {
             if (err) {
                 console.log(err);
                 return;
@@ -287,11 +298,11 @@ function emote(e, args) {
     }
 }
 
-function noris(e, args){
+function noris(e, args) {
     var append = args.name ? "?firstName=" + encodeURIComponent(args.name.trim()) : "";
-    require("./common/utils.js").getJson("http://api.icndb.com/jokes/random" + append, function(err, res){
-        if(err) e.mention().respond("Chuck Norris stole all the jokes, sorry :(");
-        if(args.name) res.value.joke = res.value.joke.trim().replace("Norris", "")
+    require("./common/utils.js").getJson("http://api.icndb.com/jokes/random" + append, function(err, res) {
+        if (err) e.mention().respond("Chuck Norris stole all the jokes, sorry :(");
+        if (args.name) res.value.joke = res.value.joke.trim().replace("Norris", "")
         e.respond("*" + decodeHTMLEntities(res.value.joke) + "*");
     });
 }
@@ -308,8 +319,8 @@ function decodeHTMLEntities(text) {
         ['quot', '"']
     ];
 
-    for (var i = 0, max = entities.length; i < max; ++i) 
-        text = text.replace(new RegExp('&'+entities[i][0]+';', 'g'), entities[i][1]);
+    for (var i = 0, max = entities.length; i < max; ++i)
+        text = text.replace(new RegExp('&' + entities[i][0] + ';', 'g'), entities[i][1]);
 
     return text;
 }
@@ -323,18 +334,58 @@ function randomScaler(number, low, high) {
 }
 
 function sumASCII(string) {
-    return string.toLowerCase().split('').map(function (char) {
+    return string.toLowerCase().split('').map(function(char) {
         return char.charCodeAt(0);
-    }).reduce(function (current, previous) {
+    }).reduce(function(current, previous) {
         return previous + current;
     });
 }
 
+function doSize(e, args) {
+    var rand = 0;
+    if (args.user)
+        rand = getSize(args.user);
+    else
+        rand = getSize(e.userID);
+
+    e.mention(args.user).respond("is **" + rand.toPrecision(3) + "** cm, **" + ((rand * 0.03280839895) * 12).toPrecision(3) + "** inches or **" + (rand * 5.3087490157545E+35) + "** Plank lengths");
+}
+
 function seededRandom(seed) {
     var r = seed;
-    this.random = function () {
+    this.random = function() {
         var x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
-    }
+    };
     this.random();
+}
+
+function randomScalerFloat(number, low, high) {
+    return (number * (high - low) + low);
+}
+
+function toFeet(n) {
+    var realFeet = ((n * 0.393700) / 12);
+    var feet = Math.floor(realFeet);
+    var inches = Math.round((realFeet - feet) * 12);
+    return feet + " feet " + inches + ' inches';
+}
+
+function getSize(uid) {
+    var hash = CryptoJS.MD5(uid).toString();
+    var n = (parseInt(hash.substring(5, 9), 16) * 9) % 0xffff;
+    var u = n / 32768 - 1; // [-1,1]
+    if (Math.abs(u) < 0.001) {
+        if (u < 0) {
+            u = -0.001;
+        } else {
+            u = 0.001;
+        }
+    }
+    var r = Math.pow(0.5 - Math.cos(Math.PI * u) / 2, 1.5) * (u / Math.abs(u)) * Math.exp(u) / Math.E;
+    if (r > 1) {
+        r = 1;
+    }
+    var s = Math.abs(15 + r * 10);
+    return s;
 }

@@ -73,7 +73,7 @@ function ping(e, args) {
         if (err) return;
         _delay = new Date(res.timestamp).getTime() - new Date(e.rawEvent.d.timestamp).getTime();
         e._disco.bot.editMessage({
-            channel: res.channel_id,
+            channelID: res.channel_id,
             messageID: res.id,
             message: "<@" + e.userID + "> " + e.language.ping.main + "\n" + e.language.ping.delay + " **" + _delay + "** ms"
         });

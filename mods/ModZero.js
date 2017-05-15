@@ -32,7 +32,7 @@ function zeroGrab(e, args) {
     // solves redirects automatically
     function getPage(url, callback) {
         logger.debug("get " + url);
-        callback = callback || () => {};
+        callback = callback || (() => {});
         request(url, function(err, response, body) {
             try {
                 if(err) {

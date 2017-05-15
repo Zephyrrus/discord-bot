@@ -172,6 +172,6 @@ app.use(function (err, req, res, next) {
   throw err;
 });
 
-app.listen(8080, "0.0.0.0", function () { // moved to 8080
-  console.log("App listening on " + "0.0.0.0" + ":" + "8080");
+app.listen(8089, "0.0.0.0", function () { // moved to 8080
+  console.log("App listening on " + "0.0.0.0" + ":" + "8089");
 })

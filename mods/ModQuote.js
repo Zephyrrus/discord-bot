@@ -126,7 +126,7 @@ function addQuote(e, args){
                 if(author.length > 32) {
                     message.push(author); 
                     author = "Unknown";
-                }// fuck, this was not the author, put it back to it's place
+                } // fuck, this was not the author, put it back to it's place
             }
             var message = splt.join("-");
 

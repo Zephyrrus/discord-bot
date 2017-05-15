@@ -87,7 +87,7 @@ function getRandom(e, board, posts) {
         e._disco.bot.uploadFile({
             to: e.channelID,
             file: body,
-            filename: "whatever.png",
+            filename: "whatever" + random.ext,
             message: "Cancer incoming from **/" + board._board + "/** !"
         });
     });
@@ -107,60 +107,70 @@ function pickRandomProperty(obj) {
 
 function doChan(e, args, chan) {
 
-    if (args.board && args.thread) {
-        /*var _board = chan.board(args.board);
-        if (!_board.Board.sfw && !e.allowNSFW) {
-            return e.mention().respond(`**NSFW mode is disabled in the current channel**`);
-        }
-        _board.thread(args.thread)
-            .then(function(res) {
-                getRandom(e, res);
-            }).catch(e => {
-                e.mention().respond('I am sorry ;-;.\n**' + e.message + '**');
-            });*/
-    } else if (args.board && !args.thread) {
-        var _board = chan.board(args.board);
-        if (_board._Board.sfw == 0 && e.allowNSFW == false) {
-            return e.mention().respond(`**NSFW mode is disabled in the current channel**`);
-        }
-        _board.threads().then(function(res) {
-            var threads = [];
-            res.forEach(e => {
-                e.threads.forEach(f => {
-                    threads.push(f.no);
+    function _doChanInternal(e, args, chan, repeat) {
+        if(repeat > 3) return;
+
+        if (args.board && args.thread) {
+            /*var _board = chan.board(args.board);
+            if (!_board.Board.sfw && !e.allowNSFW) {
+                return e.mention().respond(`**NSFW mode is disabled in the current channel**`);
+            }
+            _board.thread(args.thread)
+                .then(function(res) {
+                    getRandom(e, res);
+                }).catch(e => {
+                    e.mention().respond('I am sorry ;-;.\n**' + e.message + '**');
+                });*/
+        } else if (args.board && !args.thread) {
+            var _board = chan.board(args.board);
+            if (_board._Board.sfw == 0 && e.allowNSFW == false) {
+                return e.mention().respond(`**NSFW mode is disabled in the current channel**`);
+            }
+            _board.threads().then(function(res) {
+                var threads = [];
+                res.forEach(e => {
+                    e.threads.forEach(f => {
+                        threads.push(f.no);
+                    });
                 });
-            });
-            _board.thread(threads[Math.floor((Math.random() * threads.length))]).then(res => {
-                console.log(res[0]);
-                try {
-                    getRandom(e, _board, res);
-                } catch (e) {
-                    console.log(e);
-                }
-            });
-        }).catch(e => {
-            console.log(e);
-        });
-    } else {
-        var _board = chan.board(pickRandomProperty(e.allowNSFW ? chan._boards : chan.getSFWBoards));
-        _board.threads().then(function(res) {
-            var threads = [];
-            res.forEach(e => {
-                e.threads.forEach(f => {
-                    threads.push(f.no);
+                _board.thread(threads[Math.floor((Math.random() * threads.length))]).then(res => {
+                    console.log(res[0]);
+                    try {
+                        getRandom(e, _board, res);
+                    } catch (exp) {
+                        console.log(exp);
+                        _doChanInternal(e, args, chan, ++repeat);
+                    }
                 });
+            }).catch(exp => {
+                console.log(exp);
+                _doChanInternal(e, args, chan, ++repeat);
             });
-            _board.thread(threads[Math.floor((Math.random() * threads.length))]).then(res => {
-                console.log(res[0]);
-                try {
-                    getRandom(e, _board, res);
-                } catch (e) {
-                    console.log(e);
-                }
+        } else {
+            var _board = chan.board(pickRandomProperty(e.allowNSFW ? chan._boards : chan.getSFWBoards));
+            _board.threads().then(function(res) {
+                var threads = [];
+                res.forEach(e => {
+                    e.threads.forEach(f => {
+                        threads.push(f.no);
+                    });
+                });
+                _board.thread(threads[Math.floor((Math.random() * threads.length))]).then(res => {
+                    console.log(res[0]);
+                    try {
+                        getRandom(e, _board, res);
+                    } catch (exp) {
+                        console.log(exp);
+                        _doChanInternal(e, args, chan, ++repeat);
+                    }
+                });
+            }).catch(exp => {
+                console.log(exp);
+                _doChanInternal(e, args, chan, ++repeat);
             });
-        }).catch(e => {
-            console.log(e);
-        });
+        }
+
     }
+    _doChanInternal(e, args, chan, 0);
 
 }

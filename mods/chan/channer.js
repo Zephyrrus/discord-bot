@@ -116,6 +116,7 @@
              request(uri, requestOptions, function(err, res, body) {
                  if (err) return reject(err);
                  if (!body) return reject(new Error("No thread with that id"));
+                 if (body && !body.posts) return reject(new Error("No thread with that id"));
                  body.posts.forEach(e => {
                      e.com = htmlToText.fromString(e.com, {
                          wordwrap: false
