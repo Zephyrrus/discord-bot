@@ -268,7 +268,7 @@ CommandRegister.prototype.tryExec = function(e, callback) {
                         return (callback && callback({
                             errorcode: 2,
                             error: {
-                                usage: `Usage: ${cmd} ${self.commands[cmd].paramParser.getHelp()}`,
+                                usage: `${cmd} ${self.commands[cmd].paramParser.getHelp()}`,
                                 message: parameters.error.message
                             }
                         }));
