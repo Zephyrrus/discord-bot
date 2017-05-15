@@ -291,7 +291,7 @@ PermissionManager.prototype.getGroup = function (group, sid) {
 * @return object|null new group
 */
 PermissionManager.prototype.createGroup = function(group, sid, callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
 
     try {
         var gid = this.getGID(group, sid);
@@ -337,7 +337,7 @@ PermissionManager.prototype.createGroup = function(group, sid, callback) {
 * @return bool success
 */
 PermissionManager.prototype.removeGroup = function (group, sid, callback) {
-    callback = callback || () => {};
+    callback = callback || (() => {});
     try {
         var gid = this.getGID(group, sid);
     } catch(e) {

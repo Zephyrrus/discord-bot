@@ -44,7 +44,7 @@ DiscordBot.prototype.getOutbound = function(channelID) {
         if (!attempts) {
             attempts = 0;
         }
-        if (task.message) {
+        if (task.message || task.embed) {
             if (task.message.length >= 2000) {
                 var warn = "**This message was longer than 2000 characters and has been split**\n\n";
                 var parts = self.splitMessage(warn + task.message, 1990);
@@ -91,14 +91,15 @@ DiscordBot.prototype.getOutbound = function(channelID) {
     return this.outbound[channelID];
 };
 
-DiscordBot.prototype.queueMessage = function(channelID, message, callback) {
+DiscordBot.prototype.queueMessage = function(channelID, message, embed, callback) {
     if (typeof(message) == "string") {
         this.getOutbound(channelID).push({
             to: channelID,
-            message: message
+            message: message,
+            embed: embed
         }, callback);
     } else {
-        this.getOutbound(channelID).push(message, callback);
+        this.getOutbound(channelID).push(message, embed, callback);
     }
 };
 
@@ -162,7 +163,7 @@ DiscordBot.prototype.getUser = function(uid, _sid) {
 
 DiscordBot.prototype.editMessage = function(id, channelID, newMessage, callback) {
     this.bot.editMessage({
-        channel: channelID,
+        channelID: channelID,
         messageID: id,
         message: newMessage
     }, callback);
@@ -170,7 +171,7 @@ DiscordBot.prototype.editMessage = function(id, channelID, newMessage, callback)
 
 DiscordBot.prototype.deleteMessage = function(id, channelID, callback) {
     this.bot.deleteMessage({
-        channel: channelID,
+        channelID: channelID,
         messageID: id
     }, callback);
 };
@@ -302,10 +303,12 @@ DiscordBot.prototype.logJournal = function(message, level, channelID) {
     message = message.replace(/{date}/g, `**${new Date().toJSON().slice(0,10)}**`);
     message = message.replace(/{time}/g, `**${new Date().toJSON().slice(11, 19)}**`);
 
-    if((this.config.general.level == "debug" && level == "debug") || level != "debug")
-        this.queueMessage(channelID || this.config.general.logChannel, message, function(err, res) {
+    if((this.config.general.level == "debug" && level == "debug") || level != "debug"){
+        console.log(message)
+        this.queueMessage(channelID || this.config.general.logChannel, message, undefined, function(err, res) {
             if (err) logger.error("Can't do journal for message: `" + message + "`");
         });
+    }
 }
 
 
