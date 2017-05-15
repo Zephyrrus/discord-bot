@@ -300,7 +300,7 @@ databaseHandler.prototype.find = function (params, specials, callback) {
     }
 
     logger.debug("[SQLITE]_DEBUG: SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch);
-    this.database.each("[SQLITE]_DEBUG: SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch, function (err, row) {
+    this.database.each("SELECT * FROM `" + this.moduleName + "` WHERE " + questionMarks + (valid ? " ORDER BY `" + specials._order.columnName + "` " + sortOrder + " LIMIT 20" : ""), paramsToSearch, function (err, row) {
         if (err) {
             logger.error("[SQLITE_ERROR]_SELECT_WUERRY: " + err);
             return (callback && callback({ type: "SQLITEERROR", error: err.stack }, null));
