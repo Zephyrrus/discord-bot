@@ -669,8 +669,8 @@ PermissionManager.prototype._updateUser = function(uid) {
         if(err) {
             logger.error(err);
         }
-    })
-}
+    });
+};
 
 PermissionManager.prototype.createPrivilegeKey = function (gid, callback) {
     var key = require("crypto").randomBytes(32).toString('hex');

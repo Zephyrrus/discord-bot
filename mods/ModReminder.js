@@ -33,9 +33,10 @@ var databaseStructure = [{
     required: true
 }, {
     name: "reminded",
-    type: "bool",
+    type: "int",
     required: true
 }];
+
 var database = new(require("../core/Database/databaseHandler.js"))('reminders', databaseStructure);
 var parser = require('moment-parser');
 var logger = require("winston");
@@ -75,6 +76,20 @@ module.exports = {
                 type: "number",
                 required: true
             }]
+        }, {
+            name: "snooze",
+            handler: snoozeReminder,
+            helpMessage: "Snoozes a reminder. Repeat is in minutes.",
+            params: [{
+                id: "repeat",
+                type: "string",
+                required: false
+            }]
+        },
+        {
+            name: "info",
+            handler: remindStats,
+            helpMessage: "Status of reminder module"
         }]
     }
 };
@@ -120,12 +135,12 @@ function doRemind(e, args) {
         e._prepend = ""; // ugly hack to remove double mention
         var parseUglyValue = parseUgly(split[0]);
         if (!parseUglyValue) {
-            e.mention().respond("Sorry, I can't understand that time.");
+            e.mention().respond("Failed recognizing time.");
             return;
         }
         if (parseUglyValue.relative == Infinity || parseUglyValue.relative > 1009152000000) return (e.mention().respond("Sorry, I can't do that. I can only remember reminder in the next 32 years. Blame Zephy."));
         e.mention().embed(new RichEmbed()
-            .addField("I will remind you about it in", convertMS(parsedTimeTemp))
+            .addField("I will remind you about it in", convertMS(parseUglyValue.relative))
             .addField("Reminder set to", new Date(parseInt(parseUglyValue.absolute)).toUTCString())
             .setColor("DARK_RED")
         ).respond();
@@ -399,16 +414,18 @@ function deleteReminder(e, args) {
             "id": args.id,
             "userID": e.userID,
             "reminded": "0"
-        }, {reminded: true}, function(err) {
-            if(err) {
+        }, {
+            reminded: -1
+        }, function(err) {
+            if (err) {
                 logger.error(err);
                 return;
             }
             e.mention().embed(new RichEmbed().setTitle(`🗑 Deleted reminder with id *${args.id}*`)).respond();
-                if (cachedReminder) {
-                    clearTimeout(cachedReminder);
-                    cachedReminder == null;
-                } // murder old reminder, fuck it tbh
+            if (cachedReminder) {
+                clearTimeout(cachedReminder);
+                cachedReminder == null;
+            } // murder old reminder, fuck it tbh
 
             getReminder(function(err, res) {
                 prepareReminder(res);
@@ -418,9 +435,126 @@ function deleteReminder(e, args) {
     });
 }
 
+function snoozeReminder(e, args) {
+    var repeat = 1800000; // 30 min
+    var lastReminderTimer = 5 * 60 * 1000;
+
+    args.repeat += args._str;
+
+    database.find({
+            "time": new Date(Date.now() - lastReminderTimer),
+            "reminded": "1",
+            "userID": e.userID,
+        }, {
+            "time": ">",
+            "_order": {
+                "columnName": "time",
+                "sortOrder": "DESC"
+            }
+        },
+        function(err, res) {
+            if (err) {
+                logger.error('[REMINDER]:', err);
+                return;
+            }
+            if (res.count !== 0) {
+                var reminder = res.result[0];
+
+                database.update({
+                    "id": reminder.id,
+                    "userID": e.userID,
+                    "reminded": "1"
+                }, {
+                    reminded: 3
+                }, function(err) {
+                    if (err) {
+                        logger.error(err);
+                        return;
+                    }
+                    var parseUglyValue = parseUgly(args.repeat);
+                    if (parseUglyValue) {
+                        repeat = parseUglyValue.relative;
+                    }
+                    e.mention().embed(new RichEmbed()
+                                        .setTitle("Reminder snoozed, will repeat in **" + convertMS(repeat) + "**")
+                                        .setDescription("Message: " + e.clean(reminder.message))
+                                        .setColor("DARK_RED")
+                    ).respond();
+                    database.insert({
+                        "addedOn": Math.round(new Date(e.rawEvent.d.timestamp).getTime()),
+                        "userID": reminder.userID,
+                        "channelID": reminder.channelID,
+                        "message": reminder.message,
+                        "time": Math.round(new Date(Date.now() + repeat).getTime()),
+                        "relative": Math.round(repeat),
+                        "private": reminder.private,
+                        "reminded": "0"
+                    }, function(err, res) {
+                        if (err) return (logger.error("[REMINDER]: Can't snooze reminder with message: ", message, " and remind time: ", time));
+                        getReminder(function(err, res) {
+                            prepareReminder(res);
+                        });
+                    });
+                });
+
+
+                //e.mention().code(JSON.stringify(res)).respond();
+            } else {
+                e.mention().embed(new RichEmbed()
+                    .setTitle("You don't have any reminders in the last " + convertMS(lastReminderTimer))
+                    .setColor("DARK_RED")
+                ).respond();
+            }
+        });
+}
+
+function remindStats(e, args) {
+    database.list(function(err, res) {
+        if (err) {
+            logger.error('[REMINDER]:', err);
+            return (e.mention().respond("Failed database querry."));
+        }
+        if (res.count == 0) {
+            e.mention().embed(new RichEmbed()
+                .setTitle("No reminders in the database")
+                .setColor("DARK_RED")
+            ).respond();
+        } else {
+            var stats = {
+                'reminded': 0,
+                'deleted': 0,
+                'snoozed': 0,
+                'top': {},
+                'longest': 0
+            };
+            res.result.forEach(el=>{
+                if(el.reminded == 1)
+                    stats.reminded++;
+                else if(el.reminded == -1)
+                    stats.deleted++;
+                else if(el.reminded == 3)
+                    stats.snoozed++;
+
+                stats.top[el.userID] = stats.top[el.userID]++ || 0;
+                stats.longest = +el.relative > stats.longest ? +el.relative : stats.longest;
+
+            });
+            var embed =  new RichEmbed().setTitle("Reminder stats");
+            embed.addField("Total reminders", res.count, true)
+                 .addField("Deleted reminders", stats.deleted, true)
+                 .addField("Finished reminders", stats.reminded, true)
+                 .addField("Snoozed reminders", stats.snoozed, true)
+                 .addField("Most reminders by", Object.keys(stats.top).reduce(function(a, b){ return stats.top[a] > stats.top[b] ? a : b; }))
+                 .addField("Longest reminder", convertMS(stats.longest));
+            e.mention().embed(embed).respond();
+        }
+    });
+
+}
+
 function convertMS(ms) {
     return forHumans(Math.floor(ms / 1000)); // use new time conversion
-    var d, h, m, s, _ms, timeString = "";
+    /*var d, h, m, s, _ms, timeString = "";
     _ms = ms % 1000;
     s = Math.floor(ms / 1000);
     m = Math.floor(s / 60);
@@ -434,7 +568,7 @@ function convertMS(ms) {
     m !== 0 ? timeString += m + " minute" + (m > 1 ? "s" : "") + " " : null;
     s !== 0 ? timeString += s + " second" + (s > 1 ? "s" : "") + " " : null;
     _ms !== 0 ? timeString += _ms + " milisecond" + (_ms > 1 ? "s" : null) : null;
-    return timeString;
+    return timeString;*/
 };
 
 /**
@@ -459,5 +593,5 @@ function forHumans(seconds) {
         if (levels[i][0] === 0.00) continue;
         returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length - 1) : levels[i][1]);
     };
-    return returntext.trim();
+    return returntext ? returntext.trim() : "Invalid time or less than a second";
 }

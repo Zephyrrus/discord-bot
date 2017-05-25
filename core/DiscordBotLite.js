@@ -5,6 +5,7 @@
 var PermissionManager = require("./PermissionManager.js");
 var CommandManager = require("./CommandManager.js");
 //var DatabaseManager = require("./DatabaseManager.js");
+//var PreferenceManager = require("./PreferenceManager.js")
 var logger = require("winston");
 var fs = require("fs");
 var async = require("async");
@@ -21,6 +22,7 @@ function DiscordBot(bot, config, database, time) {
     this.databaseHandler = require("./Database/databaseHandler.js");
     this.config = config;
     this.database = database;
+    //this.preferences = new PreferenceManager(this);
     this.outbound = {};
 }
 

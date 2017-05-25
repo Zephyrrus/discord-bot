@@ -189,7 +189,7 @@ MessageObject.prototype.pm = function (message, uid, callback) {
 
 MessageObject.prototype.embed = function (embed, message) {
   if(typeof (embed) != "object"){
-    return this
+    return this;
   }
   this._embed = embed;
 

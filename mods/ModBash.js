@@ -29,7 +29,7 @@ function bashGrab(e, args) {
 
     function getQuote(url, callback) {
         logger.debug("get " + url);
-        callback = callback || () => {};
+        callback = callback || (() => {});
         request(url, function (err, response, body) {
             try {
                 if (err) {
