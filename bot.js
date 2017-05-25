@@ -131,13 +131,17 @@ bot.on("debug", function(rawEvent) {
 bot.on("disconnect", function(errMsg, code) {
     logger.error("Bot disconnected");
     logger.error(errMsg);
+    logger.error(code);
     internalStartTime = new Date();
     bot.connect(); //Auto reconnect
 });
 
 
 function processMessage(user, userID, channelID, message, rawEvent) {
-    if (lock) return;
+    if (lock) {
+        logger.verbose("Received message but event handler is locked!");
+        return;
+    }
 
     var serverID = bot.serverFromChannel(channelID);
     if (userID == bot.id) {
@@ -145,7 +149,6 @@ function processMessage(user, userID, channelID, message, rawEvent) {
     }
     if (serverID == undefined) {
         logger.verbose("PRIVATE MESSAGE: [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, ''));
-
     } else {
         logger.verbose("MESSAGE: (" + bot.fixMessage("<#" + channelID + ">") + ") [" + user + "]: " + message.replace(/[^A-Za-z0-9.,\/#!$%\^&\*;:{}=\-_`~() ]/, '') + (rawEvent.d.attachments[0] !== undefined ? "[attachments: " + rawEvent.d.attachments[0].url + " ]" : ""));
     }
